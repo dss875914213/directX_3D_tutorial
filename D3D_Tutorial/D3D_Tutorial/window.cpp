@@ -71,7 +71,6 @@ Window::Window()
 
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-	// -DSS TEST 到底指 WM_NCCREATE 还是 WM_CREATE
 	if (msg == WM_CREATE)
 	{
 		const CREATESTRUCT* const pCreate = reinterpret_cast<CREATESTRUCT*>(lparam);

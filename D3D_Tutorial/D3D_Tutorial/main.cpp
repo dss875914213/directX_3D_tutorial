@@ -11,7 +11,6 @@ int WINAPI WinMain(
 
 	Window window;
 
-	// 4. 消息分发
 	MSG msg;
 	BOOL ret;
 	while ((ret = GetMessage(&msg, NULL, NULL, NULL)) != 0)

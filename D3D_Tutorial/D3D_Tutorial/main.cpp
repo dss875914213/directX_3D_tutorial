@@ -1,5 +1,7 @@
 #include <windows.h>
 #include "window.h"
+#define  PI 3.1415926
+
 // 回调函数  处理获取的消息
 int WINAPI WinMain(
 	HINSTANCE hInstance,		// 应用程序句柄
@@ -8,9 +10,8 @@ int WINAPI WinMain(
 	int       nShowCmd			// 设置窗口的显示方式
 )
 {
-
 	Window window;
-
+	
 	MSG msg;
 	BOOL ret;
 	while ((ret = GetMessage(&msg, NULL, NULL, NULL)) != 0)
@@ -19,6 +20,12 @@ int WINAPI WinMain(
 		TranslateMessage(&msg);
 		// 分配消息
 		DispatchMessage(&msg);
+
+		static float add = 0.0f;
+		add += 2 * PI / 50;
+		const float c = sin(add) / 2.0f + 0.5f;
+		window.GetGraphics()->ClearBuffer(c, c, 1.0f);
+		window.GetGraphics()->EndDraw();
 	}
 
 	return 0;

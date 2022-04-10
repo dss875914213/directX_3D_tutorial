@@ -53,6 +53,7 @@ Window::WindowClass::WindowClass()
 }
 
 Window::Window()
+	:m_g(nullptr)
 {
 	HWND hWnd = CreateWindow(WindowClass::GetInstance().get()->GetName(),	// 创建的窗口类名
 		TEXT("First Window"),												// 窗口名称
@@ -66,7 +67,13 @@ Window::Window()
 	);
 
 	ShowWindow(hWnd, SW_SHOWNORMAL);
-	UpdateWindow(hWnd);
+	
+	m_g = new Graphics(hWnd);
+}
+
+Graphics* Window::GetGraphics()
+{
+	return m_g;
 }
 
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -75,8 +82,8 @@ LRESULT CALLBACK Window::HandleMsgSetup(HWND hwnd, UINT msg, WPARAM wparam, LPAR
 	{
 		const CREATESTRUCT* const pCreate = reinterpret_cast<CREATESTRUCT*>(lparam);
 		Window* const pWnd = static_cast<Window*>(pCreate->lpCreateParams);
-		SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG>(pWnd));
-		SetWindowLongPtr(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG>(HandleMsgThunk));
+		SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG>(pWnd)); // 将 this 指针保存在 GWLP_USERDATA
+		SetWindowLongPtr(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG>(HandleMsgThunk)); // 将回调函数设置为 HandleMsgThunk
 		return pWnd->HandleMsg(hwnd, msg, wparam, lparam);
 	}
 	return DefWindowProc(hwnd, msg, wparam, lparam);

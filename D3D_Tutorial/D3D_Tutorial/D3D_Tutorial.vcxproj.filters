@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="shader">
+      <UniqueIdentifier>{08283085-86e0-4bb3-a15e-55350780eebb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -32,5 +35,16 @@
     <ClInclude Include="Graphics.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="vs.hlsl">
+      <Filter>shader</Filter>
+    </FxCompile>
+    <FxCompile Include="ps.hlsl">
+      <Filter>shader</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="test.txt" />
   </ItemGroup>
 </Project>

@@ -25,6 +25,7 @@ int WINAPI WinMain(
 		add += 2 * PI / 50;
 		const float c = sin(add) / 2.0f + 0.5f;
 		window.GetGraphics()->ClearBuffer(c, c, 1.0f);
+		window.GetGraphics()->DrawTriangle();
 		window.GetGraphics()->EndDraw();
 	}
 

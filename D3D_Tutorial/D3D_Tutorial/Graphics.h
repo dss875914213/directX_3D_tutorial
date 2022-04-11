@@ -8,6 +8,7 @@ public:
 	~Graphics();
 	void Initialize(HWND hWnd); // ≥ı ºªØ direct3D
 	void ClearBuffer(float red, float green, float blue);
+	void DrawTriangle();
 	void EndDraw();
 private:
 	ID3D11Device* m_pDevice;

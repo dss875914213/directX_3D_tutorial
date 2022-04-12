@@ -85,6 +85,7 @@ void Graphics::ClearBuffer(float red, float green, float blue)
 
 void Graphics::DrawTriangle()
 {
+	/************************************* 输入装配阶段 **************************************/	
 	 //创建顶点缓存
 	struct SimpleVertex
 	{
@@ -99,7 +100,7 @@ void Graphics::DrawTriangle()
 
 	D3D11_BUFFER_DESC verticsDesc = {};
 	verticsDesc.ByteWidth = sizeof(vertices) * 3; // 字节数
-	// -DSS TEST 将 usage 设为 D3D11_USAGE_IMMUTABLE 是否可行
+	// 将 usage 设为 D3D11_USAGE_IMMUTABLE  D3D11_USAGE_DEFAULT 可行
 	verticsDesc.Usage = D3D11_USAGE_DEFAULT; // 资源的使用，gpu和cpu 的读写权限 
 	verticsDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 标识如何将资源绑定到 pipeline 
 	verticsDesc.CPUAccessFlags = 0; // CPU 的读写权限
@@ -134,11 +135,7 @@ void Graphics::DrawTriangle()
 		0
 	}};
 
-	// 图元拓扑结构
-	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// shader
-	// shader 编译
+	/************************************* 顶点着色器阶段 **************************************/
 	ID3DBlob* pBlob = NULL;
 	D3DReadFileToBlob(L"HLSL/vs.cso", &pBlob);
 	ID3D11VertexShader* pVertexShader = NULL;
@@ -146,14 +143,24 @@ void Graphics::DrawTriangle()
 	m_pContext->VSSetShader(pVertexShader, nullptr, 0);
 
 	ID3D11InputLayout* inputLayout = NULL;
-	m_pDevice->CreateInputLayout(layout, 1, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &inputLayout);
+	m_pDevice->CreateInputLayout(layout, 
+		1, 
+		pBlob->GetBufferPointer(), // 该 shader 有 layout 中定义的 SemanticName
+		pBlob->GetBufferSize(), 
+		&inputLayout);
 	m_pContext->IASetInputLayout(inputLayout);
 
+	// 图元拓扑结构
+	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	/************************************* 像素着色器阶段 **************************************/
 	D3DReadFileToBlob(L"HLSL/ps.cso", &pBlob);
 	ID3D11PixelShader* pPixelShader = NULL;
 	m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &pPixelShader);
 	m_pContext->PSSetShader(pPixelShader, nullptr, 0);
 
+	
+	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
 	

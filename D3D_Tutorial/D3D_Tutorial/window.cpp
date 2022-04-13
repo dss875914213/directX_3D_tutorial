@@ -55,11 +55,20 @@ Window::WindowClass::WindowClass()
 Window::Window()
 	:m_g(nullptr)
 {
+	INT width = 800;
+	INT height = 600;
+	RECT wr;
+	wr.left = 100;
+	wr.right = width + wr.left;
+	wr.top = 100;
+	wr.bottom = height + wr.top;
+	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
+
 	HWND hWnd = CreateWindow(WindowClass::GetInstance().get()->GetName(),	// 创建的窗口类名
 		TEXT("First Window"),												// 窗口名称
 		WS_OVERLAPPEDWINDOW,												// 窗口类型
 		200, 200,															// 窗口起始位置
-		400, 300,															// 窗口宽高
+		wr.right - wr.left, wr.bottom - wr.top,								// 窗口宽高
 		NULL,																// 父窗口句柄
 		NULL,																// 菜单句柄
 		WindowClass::GetInstance()->GetHInstance(),							// 要与该窗口关联的模块实例的句柄

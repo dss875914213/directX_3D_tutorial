@@ -1,11 +1,19 @@
 struct VSOut
 {
 	float4 pos : SV_Position;
+	float2 tex : TEXCOORD;
 };
 
-VSOut MyVs(float3 pos : POSITION)
+struct VSIn
+{
+	float3 pos : POSITION;
+	float3 tex : TEXCOORD;
+};
+
+VSOut MyVs(VSIn vIn)
 {
 	VSOut vsOut;
-	vsOut.pos = float4(pos.x, pos.y, pos.z, 1.0);
+	vsOut.pos = float4(vIn.pos.x, vIn.pos.y, vIn.pos.z, 1.0);
+	vsOut.tex = vIn.tex;
 	return vsOut;
 }

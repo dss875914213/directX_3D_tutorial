@@ -1,20 +1,19 @@
 #include "Graphics.h"
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
+#include "WICTextureLoader11.h"
+#include <string>
 
 #pragma comment(lib, "D3D11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 
+using namespace DirectX;
+
 // 输入数据解释
-D3D11_INPUT_ELEMENT_DESC layout[] = { {
-	"POSITION",									// shader 中的变量名
-	0,
-	DXGI_FORMAT_R32G32B32_FLOAT,				// 顶点数据格式
-	0,											// 代表顶点缓存数据通过哪个 slot 传给 GPU, input slot 数字，范围从0到15
-	0,											// 偏移量，告诉 GPU 从哪个位置开始拿数据
-	D3D11_INPUT_PER_VERTEX_DATA ,				// 输入槽的数据类型
-	0
-} };
+D3D11_INPUT_ELEMENT_DESC layout[] = { 
+	{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA , 0},
+	{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
+};
 
 Graphics::Graphics(HWND hWnd)
 	:m_pDevice(nullptr),
@@ -102,7 +101,7 @@ void Graphics::InitEffect()
 	m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pVertexShader);
 
 	m_pDevice->CreateInputLayout(layout,
-		1,
+		2,
 		pBlob->GetBufferPointer(), // 该 shader 有 layout 中定义的 SemanticName
 		pBlob->GetBufferSize(),
 		&m_inputLayout);
@@ -120,6 +119,7 @@ void Graphics::DrawTriangle()
 	struct SimpleVertex
 	{
 		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT2 tex;
 	};
 	SimpleVertex vertices[] =
 	{
@@ -133,14 +133,14 @@ void Graphics::DrawTriangle()
 		//DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f)
 
 		/********* 使用索引方式  *******/
-		DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f),
-		DirectX::XMFLOAT3(-0.5f,  0.5f, 0.5f),
-		DirectX::XMFLOAT3( 0.5f,  0.5f, 0.5f),
-		DirectX::XMFLOAT3( 0.5f, -0.5f, 0.5f)
+		{DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT2(0.0f, 0.0f)},
+		{DirectX::XMFLOAT3(-0.5f,  0.5f, 0.5f),	XMFLOAT2(0.0f, 1.0f)},
+		{DirectX::XMFLOAT3(0.5f,  0.5f, 0.5f),	XMFLOAT2(1.0f, 1.0f)},
+		{DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f),	XMFLOAT2(1.0f, 0.0f)},
 	};
 
 	D3D11_BUFFER_DESC verticsDesc = {};
-	verticsDesc.ByteWidth = sizeof(vertices) * 3; // 字节数
+	verticsDesc.ByteWidth = sizeof(vertices) * 5; // 字节数
 	// 将 usage 设为 D3D11_USAGE_IMMUTABLE  D3D11_USAGE_DEFAULT 可行
 	verticsDesc.Usage = D3D11_USAGE_IMMUTABLE; // 资源的使用，gpu和cpu 的读写权限 
 	verticsDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 标识如何将资源绑定到 pipeline 
@@ -200,6 +200,30 @@ void Graphics::DrawTriangle()
 
 	/************************************* 像素着色器阶段 **************************************/
 	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
+
+	ID3D11Resource* inputResource = NULL;
+	ID3D11ShaderResourceView* shaderResourceView = NULL;
+	std::wstring path = L"res\\image\\dog.jpg";
+	CreateWICTextureFromFile(m_pDevice,
+		path.c_str(),
+		&inputResource,
+		&shaderResourceView);
+
+	m_pContext->PSSetShaderResources(0, 1, &shaderResourceView);
+
+	ID3D11SamplerState* sampler;
+	D3D11_SAMPLER_DESC sampleDesc = {};
+	sampleDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampleDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP; // 平铺整数个
+	sampleDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampleDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampleDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampleDesc.MinLOD = 0;
+	sampleDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	m_pDevice->CreateSamplerState(&sampleDesc, &sampler);
+
+	m_pContext->PSSetSamplers(0, 1, &sampler);
+
 	
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
@@ -214,7 +238,7 @@ void Graphics::DrawTriangle()
 	viewPort.MinDepth = 0.0f;
 	viewPort.MaxDepth = 1.0f;
 	m_pContext->RSSetViewports(1, &viewPort);
-						
+				
 	// 开始绘制
 	/********* 使用顶点方式  *******/
 	//m_pContext->Draw(6, 0);

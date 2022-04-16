@@ -123,20 +123,10 @@ void Graphics::DrawTriangle()
 	};
 	SimpleVertex vertices[] =
 	{
-		/********* 使用顶点方式  *******/
-		//DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f),
-		//DirectX::XMFLOAT3(-0.5f,  0.5f, 0.5f),
-		//DirectX::XMFLOAT3(0.5f,  0.5f, 0.5f),
-
-		//DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f),
-		//DirectX::XMFLOAT3(0.5f,  0.5f, 0.5f),
-		//DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f)
-
-		/********* 使用索引方式  *******/
-		{DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT2(0.0f, 0.0f)},
-		{DirectX::XMFLOAT3(-0.5f,  0.5f, 0.5f),	XMFLOAT2(0.0f, 1.0f)},
-		{DirectX::XMFLOAT3(0.5f,  0.5f, 0.5f),	XMFLOAT2(1.0f, 1.0f)},
-		{DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f),	XMFLOAT2(1.0f, 0.0f)},
+		{DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT2(0.0f, 1.0f)},
+		{DirectX::XMFLOAT3(-0.5f,  0.5f, 0.5f),	XMFLOAT2(0.0f, 0.0f)},
+		{DirectX::XMFLOAT3(0.5f,  0.5f, 0.5f),	XMFLOAT2(1.0f, 0.0f)},
+		{DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f),	XMFLOAT2(1.0f, 1.0f)},
 	};
 
 	D3D11_BUFFER_DESC verticsDesc = {};
@@ -240,9 +230,6 @@ void Graphics::DrawTriangle()
 	m_pContext->RSSetViewports(1, &viewPort);
 				
 	// 开始绘制
-	/********* 使用顶点方式  *******/
-	//m_pContext->Draw(6, 0);
-	/********* 使用索引方式  *******/
 	m_pContext->DrawIndexed(6, 0, 0);
 }
 

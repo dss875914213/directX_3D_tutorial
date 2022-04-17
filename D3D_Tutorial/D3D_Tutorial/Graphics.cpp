@@ -193,7 +193,7 @@ void Graphics::DrawTriangle()
 
 	ID3D11Resource* inputResource = NULL;
 	ID3D11ShaderResourceView* shaderResourceView = NULL;
-	std::wstring path = L"res\\image\\dog.jpg";
+	std::wstring path = L"res\\image\\dog2.png";
 	CreateWICTextureFromFile(m_pDevice,
 		path.c_str(),
 		&inputResource,
@@ -218,6 +218,23 @@ void Graphics::DrawTriangle()
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
+
+	ID3D11BlendState* blendState;
+	D3D11_BLEND_DESC blendDesc = {};
+	blendDesc.AlphaToCoverageEnable = FALSE;
+	blendDesc.IndependentBlendEnable = FALSE;
+	blendDesc.RenderTarget->BlendEnable = TRUE;
+	blendDesc.RenderTarget->SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget->DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget->BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget->SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget->DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget->BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	m_pDevice->CreateBlendState(&blendDesc, &blendState);
+
+	const FLOAT BlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+	m_pContext->OMSetBlendState(blendState, BlendFactor, 0xffffffff);
 	
 	// 设置视口
 	D3D11_VIEWPORT viewPort = {};

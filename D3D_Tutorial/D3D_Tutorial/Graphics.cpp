@@ -111,7 +111,7 @@ void Graphics::InitEffect()
 	m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pPixelShader);
 }
 
-void Graphics::DrawTriangle()
+void Graphics::DrawPicture()
 {
 	InitEffect();
 	/************************************* 输入装配阶段 **************************************/	
@@ -223,14 +223,14 @@ void Graphics::DrawTriangle()
 	D3D11_BLEND_DESC blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = FALSE;
 	blendDesc.IndependentBlendEnable = FALSE;
-	blendDesc.RenderTarget->BlendEnable = TRUE;
-	blendDesc.RenderTarget->SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc.RenderTarget->DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc.RenderTarget->BlendOp = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget->SrcBlendAlpha = D3D11_BLEND_ONE;
-	blendDesc.RenderTarget->DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget->BlendEnable = FALSE; // 是否开启混合
+	blendDesc.RenderTarget->SrcBlend = D3D11_BLEND_SRC_ALPHA; // 将源图的 alpha 作为 src rgb 的混合因子
+	blendDesc.RenderTarget->DestBlend = D3D11_BLEND_INV_SRC_ALPHA; // 将源图的 1-alpha 作为 dst rgb 的混合因子
+	blendDesc.RenderTarget->BlendOp = D3D11_BLEND_OP_ADD; // 进行相加操作
+	blendDesc.RenderTarget->SrcBlendAlpha = D3D11_BLEND_ONE; // 
+	blendDesc.RenderTarget->DestBlendAlpha = D3D11_BLEND_ONE;
 	blendDesc.RenderTarget->BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.RenderTarget->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL; // 可以写入的位置
 	m_pDevice->CreateBlendState(&blendDesc, &blendState);
 
 	const FLOAT BlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};

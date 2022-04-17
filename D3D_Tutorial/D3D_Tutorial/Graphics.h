@@ -9,7 +9,7 @@ public:
 	void Initialize(HWND hWnd); // ≥ı ºªØ direct3D
 	void ClearBuffer(float red, float green, float blue);
 	void InitEffect();
-	void DrawTriangle();
+	void DrawPicture();
 	void EndDraw();
 private:
 	ID3D11VertexShader* m_pVertexShader;

@@ -78,6 +78,8 @@ Window::Window()
 	ShowWindow(hWnd, SW_SHOWNORMAL);
 	
 	m_g = new Graphics(hWnd);
+
+	m_winEvent.associate(m_g, &Graphics::Message);
 }
 
 Graphics* Window::GetGraphics()
@@ -112,6 +114,18 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 	case WM_CLOSE:
 		PostQuitMessage(0);
 		return 0;
+	case WM_KEYDOWN:
+		if (wparam == VK_UP)
+		{
+			// 触发事件
+			m_winEvent.sendEvent(wparam);
+		}
+		else if (wparam == VK_DOWN)
+		{
+			// 触发事件
+			m_winEvent.sendEvent(wparam);
+		}
+		break;
 	default:
 		break;
 	}
@@ -120,7 +134,8 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 
 Window::~Window()
 {
-
+	m_winEvent.disAssociate(m_g, &Graphics::Message);
+	delete m_g;
 }
 
 

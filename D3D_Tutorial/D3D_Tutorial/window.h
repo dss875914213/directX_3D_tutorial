@@ -4,6 +4,7 @@
 #include <mutex>
 #include <memory>
 #include "Graphics.h"
+#include "event.h"
 
 class Window
 {
@@ -40,5 +41,6 @@ private:
 	LRESULT HandleMsg(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 private:
 	Graphics* m_g;
+	Event<void, int> m_winEvent;
 };
 

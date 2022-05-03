@@ -41,6 +41,9 @@
     <ClInclude Include="WICTextureLoader11.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="event.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="vs.hlsl">

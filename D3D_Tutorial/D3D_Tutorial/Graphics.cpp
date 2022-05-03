@@ -3,11 +3,29 @@
 #include <d3dcompiler.h>
 #include "WICTextureLoader11.h"
 #include <string>
-
 #pragma comment(lib, "D3D11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 
 using namespace DirectX;
+
+void __cdecl odprintf(const char* format, ...)
+{
+	char buf[4096], * p = buf;
+	va_list args;
+
+	va_start(args, format);
+	p += _vsnprintf(p, sizeof buf - 1, format, args);
+	va_end(args);
+
+	if (p > buf && isspace(p[-1]))
+	{
+		*--p = '\0';
+		*p++ = '\r';
+		*p++ = '\n';
+		*p = '\0';
+	}
+	OutputDebugString(buf);
+}
 
 // 输入数据解释
 D3D11_INPUT_ELEMENT_DESC layout[] = { 
@@ -19,9 +37,15 @@ Graphics::Graphics(HWND hWnd)
 	:m_pDevice(nullptr),
 	m_pContext(nullptr),
 	m_pSwapChain(nullptr),
-	m_pRenderTargetView(nullptr)
+	m_pRenderTargetView(nullptr),
+	m_threshold(0.5)
 {
 	Initialize(hWnd);
+}
+
+Graphics::~Graphics()
+{
+
 }
 
 void Graphics::Initialize(HWND hWnd)
@@ -253,5 +277,22 @@ void Graphics::DrawPicture()
 void Graphics::EndDraw()
 {
 	m_pSwapChain->Present(1, 0);
+}
+
+void Graphics::Message(int msg)
+{
+	switch (msg)
+	{
+	case VK_UP:
+		m_threshold += 0.1;
+		break;
+	case VK_DOWN:
+		m_threshold -= 0.1;
+		break;
+	default:
+		break;
+	}
+	m_threshold = (std::max)((std::min)(1.0f, m_threshold), 0.0f);
+	odprintf("aaaa %f ", m_threshold);
 }
 

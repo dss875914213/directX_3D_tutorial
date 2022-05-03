@@ -1,16 +1,21 @@
-#pragma once
+Ôªø#pragma once
 #include <d3d11.h>
+#include "event.h"
+#include <windows.h>
+#include <stdio.h>
 
-class Graphics
+class Graphics : public Object
 {
 public:
 	Graphics(HWND hWnd);
 	~Graphics();
-	void Initialize(HWND hWnd); // ≥ı ºªØ direct3D
+	void Initialize(HWND hWnd); // ÂàùÂßãÂåñ direct3D
 	void ClearBuffer(float red, float green, float blue);
 	void InitEffect();
 	void DrawPicture();
 	void EndDraw();
+
+	void Message(int msg);
 private:
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;
@@ -20,5 +25,8 @@ private:
 	ID3D11DeviceContext* m_pContext;
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11RenderTargetView* m_pRenderTargetView;
+
+	float	m_threshold;
 };
+
 

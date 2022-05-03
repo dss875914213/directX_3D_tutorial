@@ -110,35 +110,10 @@ void Graphics::Initialize(HWND hWnd)
 	backBuffer->Release();
 }
 
-void Graphics::ClearBuffer(float red, float green, float blue)
-{
-	const FLOAT color[4] = { red, green, blue, 1.0f };
-	// 使用指定颜色清空渲染目标视图
-	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
-}
-
-void Graphics::InitEffect()
-{
-	/************************************* 顶点着色器阶段 **************************************/
-	ID3DBlob* pBlob = NULL;
-	D3DReadFileToBlob(L"HLSL/vs.cso", &pBlob);
-	m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pVertexShader);
-
-	m_pDevice->CreateInputLayout(layout,
-		2,
-		pBlob->GetBufferPointer(), // 该 shader 有 layout 中定义的 SemanticName
-		pBlob->GetBufferSize(),
-		&m_inputLayout);
-
-	/************************************* 像素着色器阶段 **************************************/
-	D3DReadFileToBlob(L"HLSL/ps.cso", &pBlob);
-	m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pPixelShader);
-}
-
-void Graphics::DrawPicture()
+void Graphics::Create()
 {
 	InitEffect();
-	/************************************* 输入装配阶段 **************************************/	
+	/************************************* 输入装配阶段 **************************************/
 	 //创建顶点缓存
 	struct SimpleVertex
 	{
@@ -182,7 +157,7 @@ void Graphics::DrawPicture()
 
 	DirectX::XMUINT3 index[] = {
 		{0, 1, 2},
-		{0, 2, 3}};
+		{0, 2, 3} };
 
 	D3D11_BUFFER_DESC indexDesc = {};
 	indexDesc.ByteWidth = sizeof(index) * 2; // 字节数
@@ -200,9 +175,23 @@ void Graphics::DrawPicture()
 	ID3D11Buffer* indexBuffer = NULL;
 	m_pDevice->CreateBuffer(&indexDesc, &resourceData, &indexBuffer);
 
+	// constant
+	D3D11_BUFFER_DESC bufferDesc;
+	ZeroMemory(&bufferDesc, sizeof(bufferDesc));
+	bufferDesc.ByteWidth = 16;	// 必须是 16 的倍数，不然不能创建资源
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;	//  GPU (read only) and the CPU (write only)
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferDesc.MiscFlags = 0;
+	bufferDesc.StructureByteStride = 0;
+
+	m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_constBuffer);
+
+	m_pContext->PSSetConstantBuffers(0, 1, &m_constBuffer);
+
 	// 设置所引缓存
 	m_pContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	
+
 	// 输入布局
 	m_pContext->IASetInputLayout(m_inputLayout);
 
@@ -238,7 +227,6 @@ void Graphics::DrawPicture()
 
 	m_pContext->PSSetSamplers(0, 1, &sampler);
 
-	
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
 	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
@@ -257,9 +245,9 @@ void Graphics::DrawPicture()
 	blendDesc.RenderTarget->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL; // 可以写入的位置
 	m_pDevice->CreateBlendState(&blendDesc, &blendState);
 
-	const FLOAT BlendFactor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+	const FLOAT BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	m_pContext->OMSetBlendState(blendState, BlendFactor, 0xffffffff);
-	
+
 	// 设置视口
 	D3D11_VIEWPORT viewPort = {};
 	viewPort.TopLeftX = 0;
@@ -269,7 +257,43 @@ void Graphics::DrawPicture()
 	viewPort.MinDepth = 0.0f;
 	viewPort.MaxDepth = 1.0f;
 	m_pContext->RSSetViewports(1, &viewPort);
-				
+}
+
+void Graphics::ClearBuffer(float red, float green, float blue)
+{
+	const FLOAT color[4] = { red, green, blue, 1.0f };
+	// 使用指定颜色清空渲染目标视图
+	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
+}
+
+void Graphics::InitEffect()
+{
+	/************************************* 顶点着色器阶段 **************************************/
+	ID3DBlob* pBlob = NULL;
+	D3DReadFileToBlob(L"HLSL/vs.cso", &pBlob);
+	m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pVertexShader);
+
+	m_pDevice->CreateInputLayout(layout,
+		2,
+		pBlob->GetBufferPointer(), // 该 shader 有 layout 中定义的 SemanticName
+		pBlob->GetBufferSize(),
+		&m_inputLayout);
+
+	/************************************* 像素着色器阶段 **************************************/
+	D3DReadFileToBlob(L"HLSL/ps.cso", &pBlob);
+	m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pPixelShader);
+}
+
+void Graphics::DrawPicture()
+{
+	D3D11_MAPPED_SUBRESOURCE ms;
+	m_pContext->Map(m_constBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	{
+		std::lock_guard<std::mutex> guard(m_mutex);
+		memcpy_s(ms.pData, sizeof(m_threshold), &m_threshold, sizeof(m_threshold));
+	}
+	m_pContext->Unmap(m_constBuffer, 0);
+		
 	// 开始绘制
 	m_pContext->DrawIndexed(6, 0, 0);
 }
@@ -281,6 +305,7 @@ void Graphics::EndDraw()
 
 void Graphics::Message(int msg)
 {
+	std::lock_guard<std::mutex> guard(m_mutex);
 	switch (msg)
 	{
 	case VK_UP:
@@ -293,6 +318,6 @@ void Graphics::Message(int msg)
 		break;
 	}
 	m_threshold = (std::max)((std::min)(1.0f, m_threshold), 0.0f);
-	odprintf("aaaa %f ", m_threshold);
+	odprintf("m_threshold %f ", m_threshold);
 }
 

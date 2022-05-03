@@ -115,16 +115,7 @@ LRESULT Window::HandleMsg(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		PostQuitMessage(0);
 		return 0;
 	case WM_KEYDOWN:
-		if (wparam == VK_UP)
-		{
-			// 触发事件
-			m_winEvent.sendEvent(wparam);
-		}
-		else if (wparam == VK_DOWN)
-		{
-			// 触发事件
-			m_winEvent.sendEvent(wparam);
-		}
+		m_winEvent.sendEvent(wparam);
 		break;
 	default:
 		break;

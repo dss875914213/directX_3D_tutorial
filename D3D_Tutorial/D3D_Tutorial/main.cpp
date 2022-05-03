@@ -14,6 +14,7 @@ int WINAPI WinMain(
 	
 	MSG msg;
 	BOOL ret;
+	window.GetGraphics()->Create();
 	while ((ret = GetMessage(&msg, NULL, NULL, NULL)) != 0)
 	{
 		// 将类似组合键转换成可识别的

@@ -8,6 +8,12 @@
 
 using namespace DirectX;
 
+struct SimpleVertex
+{
+	DirectX::XMFLOAT3 pos;
+	DirectX::XMFLOAT2 tex;
+};
+
 void __cdecl odprintf(const char* format, ...)
 {
 	char buf[4096], * p = buf;
@@ -38,8 +44,11 @@ Graphics::Graphics(HWND hWnd)
 	m_pContext(nullptr),
 	m_pSwapChain(nullptr),
 	m_pRenderTargetView(nullptr),
-	m_threshold(0.5)
+	m_threshold(0.5),
+	m_transParent(TRUE)
 {
+	ZeroMemory(&m_transformation, sizeof(m_transformation));
+
 	Initialize(hWnd);
 }
 
@@ -115,45 +124,7 @@ void Graphics::Create()
 	InitEffect();
 	/************************************* 输入装配阶段 **************************************/
 	 //创建顶点缓存
-	struct SimpleVertex
-	{
-		DirectX::XMFLOAT3 pos;
-		DirectX::XMFLOAT2 tex;
-	};
-	SimpleVertex vertices[] =
-	{
-		{DirectX::XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT2(0.0f, 1.0f)},
-		{DirectX::XMFLOAT3(-0.5f,  0.5f, 0.5f),	XMFLOAT2(0.0f, 0.0f)},
-		{DirectX::XMFLOAT3(0.5f,  0.5f, 0.5f),	XMFLOAT2(1.0f, 0.0f)},
-		{DirectX::XMFLOAT3(0.5f, -0.5f, 0.5f),	XMFLOAT2(1.0f, 1.0f)},
-	};
-
-	D3D11_BUFFER_DESC verticsDesc = {};
-	verticsDesc.ByteWidth = sizeof(vertices) * 5; // 字节数
-	// 将 usage 设为 D3D11_USAGE_IMMUTABLE  D3D11_USAGE_DEFAULT 可行
-	verticsDesc.Usage = D3D11_USAGE_IMMUTABLE; // 资源的使用，gpu和cpu 的读写权限 
-	verticsDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 标识如何将资源绑定到 pipeline 
-	verticsDesc.CPUAccessFlags = 0; // CPU 的读写权限
-	verticsDesc.MiscFlags = 0;
-	verticsDesc.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA resourceData = {};
-	resourceData.pSysMem = vertices;
-	resourceData.SysMemPitch = 0;
-	resourceData.SysMemSlicePitch = 0;
-	ID3D11Buffer* verticesBuffer = NULL;
-	m_pDevice->CreateBuffer(&verticsDesc, &resourceData, &verticesBuffer);
-
-
-	UINT strider = sizeof(SimpleVertex);
-	UINT offset = 0;
-	m_pContext->IASetVertexBuffers(
-		0,				// start slot
-		1,				// buffer 数量  (start slot ~ start slot + buffer number
-		&verticesBuffer,// 顶点缓存
-		&strider,		// 每组数据的字节数
-		&offset);		// 偏移量
-
+	SetVertexBuffer();
 
 	DirectX::XMUINT3 index[] = {
 		{0, 1, 2},
@@ -168,6 +139,7 @@ void Graphics::Create()
 	indexDesc.MiscFlags = 0;
 	indexDesc.StructureByteStride = 0;
 
+	D3D11_SUBRESOURCE_DATA resourceData = {};
 	resourceData.pSysMem = index;
 	resourceData.SysMemPitch = 0;
 	resourceData.SysMemSlicePitch = 0;
@@ -235,7 +207,7 @@ void Graphics::Create()
 	D3D11_BLEND_DESC blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = FALSE;
 	blendDesc.IndependentBlendEnable = FALSE;
-	blendDesc.RenderTarget->BlendEnable = TRUE; // 是否开启混合
+	blendDesc.RenderTarget->BlendEnable = m_transParent; // 是否开启混合
 	blendDesc.RenderTarget->SrcBlend = D3D11_BLEND_SRC_ALPHA; // 将源图的 alpha 作为 src rgb 的混合因子
 	blendDesc.RenderTarget->DestBlend = D3D11_BLEND_INV_SRC_ALPHA; // 将源图的 1-alpha 作为 dst rgb 的混合因子
 	blendDesc.RenderTarget->BlendOp = D3D11_BLEND_OP_ADD; // 进行相加操作
@@ -286,6 +258,7 @@ void Graphics::InitEffect()
 
 void Graphics::DrawPicture()
 {
+	SetVertexBuffer();
 	D3D11_MAPPED_SUBRESOURCE ms;
 	m_pContext->Map(m_constBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
 	{
@@ -306,6 +279,7 @@ void Graphics::EndDraw()
 void Graphics::Message(int msg)
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
+	odprintf("msg: %d ", msg);
 	switch (msg)
 	{
 	case VK_UP:
@@ -314,10 +288,53 @@ void Graphics::Message(int msg)
 	case VK_DOWN:
 		m_threshold -= 0.1;
 		break;
+	case 'H':
+		m_transformation.flipH = !m_transformation.flipH;
+		break;
+	case 'V':
+		m_transformation.flipV = !m_transformation.flipV;
+		break;
 	default:
 		break;
 	}
 	m_threshold = (std::max)((std::min)(1.0f, m_threshold), 0.0f);
 	odprintf("m_threshold %f ", m_threshold);
+}
+
+void Graphics::SetVertexBuffer()
+{
+	SimpleVertex vertices[] =
+	{
+		{DirectX::XMFLOAT3(-1.0f, -1.0f, 0.5f), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		{DirectX::XMFLOAT3(-1.0f,  1.0f, 0.5f),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{DirectX::XMFLOAT3(1.0f,  1.0f, 0.5f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{DirectX::XMFLOAT3(1.0f, -1.0f, 0.5f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+	};
+
+	D3D11_BUFFER_DESC verticsDesc = {};
+	verticsDesc.ByteWidth = sizeof(vertices) * 5; // 字节数
+	// 将 usage 设为 D3D11_USAGE_IMMUTABLE  D3D11_USAGE_DEFAULT 可行
+	verticsDesc.Usage = D3D11_USAGE_IMMUTABLE; // 资源的使用，gpu和cpu 的读写权限 
+	verticsDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 标识如何将资源绑定到 pipeline 
+	verticsDesc.CPUAccessFlags = 0; // CPU 的读写权限
+	verticsDesc.MiscFlags = 0;
+	verticsDesc.StructureByteStride = 0;
+
+	D3D11_SUBRESOURCE_DATA resourceData = {};
+	resourceData.pSysMem = vertices;
+	resourceData.SysMemPitch = 0;
+	resourceData.SysMemSlicePitch = 0;
+	ID3D11Buffer* verticesBuffer = NULL;
+	m_pDevice->CreateBuffer(&verticsDesc, &resourceData, &verticesBuffer);
+
+
+	UINT strider = sizeof(SimpleVertex);
+	UINT offset = 0;
+	m_pContext->IASetVertexBuffers(
+		0,				// start slot
+		1,				// buffer 数量  (start slot ~ start slot + buffer number
+		&verticesBuffer,// 顶点缓存
+		&strider,		// 每组数据的字节数
+		&offset);		// 偏移量
 }
 

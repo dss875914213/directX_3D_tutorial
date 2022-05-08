@@ -4,6 +4,20 @@
 #include <windows.h>
 #include <stdio.h>
 #include <mutex>
+#include <DirectXMath.h>
+
+struct Transformation
+{
+	DirectX::XMFLOAT4	clip;
+	DirectX::XMFLOAT2	size;
+	DirectX::XMFLOAT2	pos;
+	DirectX::XMFLOAT2	scale;
+	BOOL				flipH;
+	BOOL				flipV;
+	FLOAT				angle;
+};
+
+
 
 class Graphics : public Object
 {
@@ -19,6 +33,8 @@ public:
 
 	void Message(int msg);
 private:
+	void SetVertexBuffer();
+private:
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;
 	ID3D11InputLayout* m_inputLayout;
@@ -29,8 +45,10 @@ private:
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11RenderTargetView* m_pRenderTargetView;
 
-	std::mutex	m_mutex;
-	float		m_threshold;
+	std::mutex		m_mutex;
+	float			m_threshold;
+	BOOL			m_transParent;
+	Transformation	m_transformation;
 };
 
 

@@ -10,8 +10,8 @@ using namespace DirectX;
 
 struct SimpleVertex
 {
-	DirectX::XMFLOAT3 pos;
-	DirectX::XMFLOAT2 tex;
+	XMFLOAT3 pos;
+	XMFLOAT2 tex;
 };
 
 void __cdecl odprintf(const char* format, ...)
@@ -44,7 +44,7 @@ Graphics::Graphics(HWND hWnd)
 	m_pContext(nullptr),
 	m_pSwapChain(nullptr),
 	m_pRenderTargetView(nullptr),
-	m_threshold(0.5),
+	m_threshold(0.0),
 	m_transParent(TRUE)
 {
 	ZeroMemory(&m_transformation, sizeof(m_transformation));
@@ -128,7 +128,10 @@ void Graphics::Create()
 
 	DirectX::XMUINT3 index[] = {
 		{0, 1, 2},
-		{0, 2, 3} };
+		{0, 2, 3} 
+		//{0, 2, 1},
+		//{0, 3, 2}
+	};
 
 	D3D11_BUFFER_DESC indexDesc = {};
 	indexDesc.ByteWidth = sizeof(index) * 2; // 字节数
@@ -220,6 +223,14 @@ void Graphics::Create()
 	const FLOAT BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	m_pContext->OMSetBlendState(blendState, BlendFactor, 0xffffffff);
 
+	//ID3D11DepthStencilState* depthStencail;
+	//D3D11_DEPTH_STENCIL_DESC depthDesc;
+	//depthDesc.DepthEnable = TRUE;
+	//depthDesc.DepthFunc = D3D11_COMPARISON_EQUAL;
+	//m_pDevice->CreateDepthStencilState(&depthDesc, &depthStencail);
+
+	//m_pContext->OMSetDepthStencilState(depthStencail, 1);
+
 	// 设置视口
 	D3D11_VIEWPORT viewPort = {};
 	viewPort.TopLeftX = 0;
@@ -301,15 +312,24 @@ void Graphics::Message(int msg)
 	odprintf("m_threshold %f ", m_threshold);
 }
 
+
+
 void Graphics::SetVertexBuffer()
 {
+	XMFLOAT4X4 pos = SetModel();	
 	SimpleVertex vertices[] =
 	{
-		{DirectX::XMFLOAT3(-1.0f, -1.0f, 0.5f), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
-		{DirectX::XMFLOAT3(-1.0f,  1.0f, 0.5f),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
-		{DirectX::XMFLOAT3(1.0f,  1.0f, 0.5f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
-		{DirectX::XMFLOAT3(1.0f, -1.0f, 0.5f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		{XMFLOAT3(pos._11 / pos._41, pos._21 / pos._41, pos._31 / pos._41), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		{XMFLOAT3(pos._12 / pos._42, pos._22 / pos._42, pos._32 / pos._42),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{XMFLOAT3(pos._13 / pos._43, pos._23 / pos._43, pos._33 / pos._43),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{XMFLOAT3(pos._14 / pos._44, pos._24 / pos._44, pos._34 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		// 
+		//{XMFLOAT3(-1.0f, -1.0f, -0.1f),  XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		//{XMFLOAT3(-1.0f,  1.0f, -0.1f),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		//{XMFLOAT3(1.0f,  1.0f,  -0.1f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		//{XMFLOAT3(1.0f, -1.0f,  -0.1f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
 	};
+
 
 	D3D11_BUFFER_DESC verticsDesc = {};
 	verticsDesc.ByteWidth = sizeof(vertices) * 5; // 字节数
@@ -336,5 +356,55 @@ void Graphics::SetVertexBuffer()
 		&verticesBuffer,// 顶点缓存
 		&strider,		// 每组数据的字节数
 		&offset);		// 偏移量
+}
+
+DirectX::XMFLOAT4X4 Graphics::SetModel()
+{
+	XMMATRIX rotate = DirectX::XMMatrixRotationY(30* D3DX_PI / 180);
+	XMMATRIX scale = DirectX::XMMatrixScaling(0.5f, 0.5f, 1.0f);
+	// XMMATRIX scale = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	XMMATRIX translate;
+	XMMATRIX mirror;
+	XMMATRIX shear;
+	m_model = DirectX::XMMatrixIdentity();
+
+
+	//XMFLOAT3 position = { 0, 0, -5.0f };
+	//XMFLOAT3 lookat = {0, 0, 1};
+	//XMFLOAT3 up = { 0, 1, 0 };
+
+	//FXMVECTOR positionVector = XMLoadFloat3(&position);
+	//FXMVECTOR lookatVector = XMLoadFloat3(&lookat);
+	//FXMVECTOR upVector = XMLoadFloat3(&up);
+	m_view = DirectX::XMMatrixLookAtLH(
+		DirectX::XMVectorSet(0, 0, -5.0f, 0.0f), 
+		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+	//m_view = DirectX::XMMatrixLookAtLH(positionVector, lookatVector, upVector);
+
+	FLOAT fov = 90 * D3DX_PI / 180;
+	FLOAT aspectRatio = 800.0 / 600;
+
+	//m_projection = DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, 0.1, 100.0f);
+	m_projection = DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, 1.0f, 1000.0f);
+	XMMATRIX matrix = m_projection * m_view * m_model;
+
+
+	XMMATRIX pos = DirectX::XMMatrixTranspose(DirectX::XMMatrixSet(
+		-1.0f, -1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f, -1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f));
+
+	//pos = m_model * pos;
+	//pos = m_view * pos;
+	//pos = m_projection * pos;
+	pos = pos * m_model;
+	pos = pos * m_view;
+	pos = pos * m_projection;
+	pos = DirectX::XMMatrixTranspose(pos);
+	XMFLOAT4X4 pDestination;
+	DirectX::XMStoreFloat4x4(&pDestination, pos);
+	return pDestination;
 }
 

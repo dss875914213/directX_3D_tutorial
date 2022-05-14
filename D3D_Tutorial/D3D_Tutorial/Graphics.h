@@ -6,6 +6,10 @@
 #include <mutex>
 #include <DirectXMath.h>
 
+#ifndef D3DX_PI
+#define D3DX_PI    (3.14159265358979323846)
+#endif
+
 struct Transformation
 {
 	DirectX::XMFLOAT4	clip;
@@ -34,6 +38,7 @@ public:
 	void Message(int msg);
 private:
 	void SetVertexBuffer();
+	DirectX::XMFLOAT4X4 SetModel();
 private:
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;
@@ -45,10 +50,13 @@ private:
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11RenderTargetView* m_pRenderTargetView;
 
-	std::mutex		m_mutex;
-	float			m_threshold;
-	BOOL			m_transParent;
-	Transformation	m_transformation;
+	std::mutex			m_mutex;
+	float				m_threshold;
+	BOOL				m_transParent;
+	Transformation		m_transformation;
+	DirectX::XMMATRIX	m_model;
+	DirectX::XMMATRIX	m_view;
+	DirectX::XMMATRIX	m_projection;
 };
 
 

@@ -22,10 +22,10 @@ int WINAPI WinMain(
 		// ·ÖÅäÏûÏ¢
 		DispatchMessage(&msg);
 
-		static float add = 0.0f;
-		add += 2 * PI / 50;
-		const float c = sin(add) / 2.0f + 0.5f;
-		window.GetGraphics()->ClearBuffer(c, c, 1.0f);
+		//static float add = 0.0f;
+		//add += 2 * PI / 50;
+		//const float c = sin(add) / 2.0f + 0.5f;
+		window.GetGraphics()->ClearBuffer(1.0f, 1.0f, 1.0f);
 		window.GetGraphics()->DrawPicture();
 		window.GetGraphics()->EndDraw();
 	}

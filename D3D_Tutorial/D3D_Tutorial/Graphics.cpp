@@ -48,6 +48,7 @@ Graphics::Graphics(HWND hWnd)
 	m_transParent(TRUE)
 {
 	ZeroMemory(&m_transformation, sizeof(m_transformation));
+	m_transformation.scale = { 1.0f, 1.0f };
 
 	Initialize(hWnd);
 }
@@ -127,10 +128,8 @@ void Graphics::Create()
 	SetVertexBuffer();
 
 	DirectX::XMUINT3 index[] = {
-		//{0, 1, 2},
-		//{0, 2, 3} 
-		{0, 2, 1},
-		{0, 3, 2}
+		{0, 1, 2},
+		{0, 2, 3}
 	};
 
 	D3D11_BUFFER_DESC indexDesc = {};
@@ -223,14 +222,6 @@ void Graphics::Create()
 	const FLOAT BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	m_pContext->OMSetBlendState(blendState, BlendFactor, 0xffffffff);
 
-	//ID3D11DepthStencilState* depthStencail;
-	//D3D11_DEPTH_STENCIL_DESC depthDesc;
-	//depthDesc.DepthEnable = TRUE;
-	//depthDesc.DepthFunc = D3D11_COMPARISON_EQUAL;
-	//m_pDevice->CreateDepthStencilState(&depthDesc, &depthStencail);
-
-	//m_pContext->OMSetDepthStencilState(depthStencail, 1);
-
 	// 设置视口
 	D3D11_VIEWPORT viewPort = {};
 	viewPort.TopLeftX = 0;
@@ -305,6 +296,36 @@ void Graphics::Message(int msg)
 	case 'V':
 		m_transformation.flipV = !m_transformation.flipV;
 		break;
+	case 'R':
+		m_transformation.angle -= 10;
+		break;
+	case 'L':
+		m_transformation.angle += 10;
+		break;
+	case 'W':
+		m_transformation.pos.y += 1;
+		break;
+	case 'S':
+		m_transformation.pos.y -= 1;
+		break;
+	case 'A':
+		m_transformation.pos.x -= 1;
+		break;
+	case 'D':
+		m_transformation.pos.x += 1;
+		break;
+	case 'U':
+		m_transformation.scale.x += 0.1;
+		break;
+	case 'I':
+		m_transformation.scale.x -= 0.1;
+		break;
+	case 'O':
+		m_transformation.scale.y += 0.1;
+		break;
+	case 'P':
+		m_transformation.scale.y -= 0.1;
+		break;
 	default:
 		break;
 	}
@@ -316,18 +337,14 @@ void Graphics::Message(int msg)
 
 void Graphics::SetVertexBuffer()
 {
-	XMFLOAT4X4 pos = SetModel();	
+	XMFLOAT4X4 pos = SetVP();
+
 	SimpleVertex vertices[] =
 	{
 		{XMFLOAT3(pos._11 / pos._14, pos._12 / pos._14, pos._13 / pos._14), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
 		{XMFLOAT3(pos._21 / pos._24, pos._22 / pos._24, pos._23 / pos._24),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
 		{XMFLOAT3(pos._31 / pos._34, pos._32 / pos._34, pos._33 / pos._34),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
 		{XMFLOAT3(pos._41 / pos._44, pos._42 / pos._44, pos._43 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
-		// 
-		//{XMFLOAT3(-1.0f, -1.0f, -0.1f),  XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
-		//{XMFLOAT3(-1.0f,  1.0f, -0.1f),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
-		//{XMFLOAT3(1.0f,  1.0f,  -0.1f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
-		//{XMFLOAT3(1.0f, -1.0f,  -0.1f),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
 	};
 
 
@@ -358,15 +375,16 @@ void Graphics::SetVertexBuffer()
 		&offset);		// 偏移量
 }
 
-DirectX::XMFLOAT4X4 Graphics::SetModel()
+DirectX::XMFLOAT4X4 Graphics::SetVP()
 {
-	XMMATRIX rotate = DirectX::XMMatrixRotationY(0* D3DX_PI / 180);
-	XMMATRIX scale = DirectX::XMMatrixScaling(2.0f, 2.0f, 1.0f);
-	XMMATRIX translate = DirectX::XMMatrixTranslation(0, 0, 0);
-	// 让 uv 做镜像
-	XMMATRIX mirror = DirectX::XMMatrixReflect(DirectX::XMVectorSet(0.1, 0, 0, 0));
-	XMMATRIX shear;
-	m_model = mirror;
+	//XMMATRIX rotate = DirectX::XMMatrixRotationX(m_transformation.angle * D3DX_PI / 180);
+	//XMMATRIX rotate = DirectX::XMMatrixRotationY(m_transformation.angle * D3DX_PI / 180);
+	XMMATRIX rotate = DirectX::XMMatrixRotationZ(m_transformation.angle * D3DX_PI / 180);
+
+	XMMATRIX scale = DirectX::XMMatrixScaling(m_transformation.scale.x, m_transformation.scale.y, 1.0f);
+	XMMATRIX translate = DirectX::XMMatrixTranslation(m_transformation.pos.x, m_transformation.pos.y, 0.0f);
+	//XMMATRIX shear = DirectX::XMMatrix;
+	m_model = scale * rotate* translate;
 
 	// 由于 directX 是左手坐标系，有些东西和课里面不一样
 	m_view = DirectX::XMMatrixLookAtLH(

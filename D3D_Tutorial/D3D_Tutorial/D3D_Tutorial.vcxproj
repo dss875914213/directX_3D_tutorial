@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ScreenGrab11.cpp" />
     <ClCompile Include="WICTextureLoader11.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="event.h" />
     <ClInclude Include="Graphics.h" />
+    <ClInclude Include="ScreenGrab11.h" />
     <ClInclude Include="WICTextureLoader11.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>

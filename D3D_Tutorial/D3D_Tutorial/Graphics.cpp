@@ -2,6 +2,8 @@
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include "WICTextureLoader11.h"
+#include <wincodec.h>
+#include "ScreenGrab11.h"
 #include <string>
 #pragma comment(lib, "D3D11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
@@ -271,6 +273,11 @@ void Graphics::DrawPicture()
 		
 	// ¿ªÊ¼»æÖÆ
 	m_pContext->DrawIndexed(6, 0, 0);
+
+	ID3D11Texture2D* backBuffer = nullptr;
+	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
+	SaveWICTextureToFile(m_pContext, backBuffer, GUID_ContainerFormatPng, L"D://test.png");
+	backBuffer->Release();
 }
 
 void Graphics::EndDraw()

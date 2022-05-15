@@ -47,7 +47,8 @@ Graphics::Graphics(HWND hWnd)
 	m_pSwapChain(nullptr),
 	m_pRenderTargetView(nullptr),
 	m_threshold(0.0),
-	m_transParent(TRUE)
+	m_transParent(TRUE),
+	m_backBuffer(NULL)
 {
 	ZeroMemory(&m_transformation, sizeof(m_transformation));
 	m_transformation.scale = { 1.0f, 1.0f };
@@ -116,10 +117,9 @@ void Graphics::Initialize(HWND hWnd)
 	dxgiFactory->Release();
 
 	// 4. 创建渲染目标视图
-	ID3D11Texture2D* backBuffer = nullptr;
-	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
-	m_pDevice->CreateRenderTargetView(backBuffer, 0, &m_pRenderTargetView);
-	backBuffer->Release();
+	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&m_backBuffer));
+	m_pDevice->CreateRenderTargetView(m_backBuffer, 0, &m_pRenderTargetView);
+	//backBuffer->Release();
 }
 
 void Graphics::Create()
@@ -274,10 +274,7 @@ void Graphics::DrawPicture()
 	// 开始绘制
 	m_pContext->DrawIndexed(6, 0, 0);
 
-	ID3D11Texture2D* backBuffer = nullptr;
-	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
-	SaveWICTextureToFile(m_pContext, backBuffer, GUID_ContainerFormatPng, L"D://test.png");
-	backBuffer->Release();
+	SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
 }
 
 void Graphics::EndDraw()

@@ -54,6 +54,7 @@ private:
 	float				m_threshold;
 	BOOL				m_transParent;
 	Transformation		m_transformation;
+	ID3D11Texture2D*	m_backBuffer;
 	DirectX::XMMATRIX	m_model;
 	DirectX::XMMATRIX	m_view;
 	DirectX::XMMATRIX	m_projection;

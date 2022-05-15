@@ -127,10 +127,10 @@ void Graphics::Create()
 	SetVertexBuffer();
 
 	DirectX::XMUINT3 index[] = {
-		{0, 1, 2},
-		{0, 2, 3} 
-		//{0, 2, 1},
-		//{0, 3, 2}
+		//{0, 1, 2},
+		//{0, 2, 3} 
+		{0, 2, 1},
+		{0, 3, 2}
 	};
 
 	D3D11_BUFFER_DESC indexDesc = {};
@@ -319,10 +319,10 @@ void Graphics::SetVertexBuffer()
 	XMFLOAT4X4 pos = SetModel();	
 	SimpleVertex vertices[] =
 	{
-		{XMFLOAT3(pos._11 / pos._41, pos._21 / pos._41, pos._31 / pos._41), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
-		{XMFLOAT3(pos._12 / pos._42, pos._22 / pos._42, pos._32 / pos._42),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
-		{XMFLOAT3(pos._13 / pos._43, pos._23 / pos._43, pos._33 / pos._43),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
-		{XMFLOAT3(pos._14 / pos._44, pos._24 / pos._44, pos._34 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		{XMFLOAT3(pos._11 / pos._14, pos._12 / pos._14, pos._13 / pos._14), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		{XMFLOAT3(pos._21 / pos._24, pos._22 / pos._24, pos._23 / pos._24),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{XMFLOAT3(pos._31 / pos._34, pos._32 / pos._34, pos._33 / pos._34),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{XMFLOAT3(pos._41 / pos._44, pos._42 / pos._44, pos._43 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
 		// 
 		//{XMFLOAT3(-1.0f, -1.0f, -0.1f),  XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
 		//{XMFLOAT3(-1.0f,  1.0f, -0.1f),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
@@ -360,49 +360,33 @@ void Graphics::SetVertexBuffer()
 
 DirectX::XMFLOAT4X4 Graphics::SetModel()
 {
-	XMMATRIX rotate = DirectX::XMMatrixRotationY(30* D3DX_PI / 180);
-	XMMATRIX scale = DirectX::XMMatrixScaling(0.5f, 0.5f, 1.0f);
-	// XMMATRIX scale = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	XMMATRIX translate;
-	XMMATRIX mirror;
+	XMMATRIX rotate = DirectX::XMMatrixRotationY(0* D3DX_PI / 180);
+	XMMATRIX scale = DirectX::XMMatrixScaling(2.0f, 2.0f, 1.0f);
+	XMMATRIX translate = DirectX::XMMatrixTranslation(0, 0, 0);
+	// 让 uv 做镜像
+	XMMATRIX mirror = DirectX::XMMatrixReflect(DirectX::XMVectorSet(0.1, 0, 0, 0));
 	XMMATRIX shear;
-	m_model = DirectX::XMMatrixIdentity();
+	m_model = mirror;
 
-
-	//XMFLOAT3 position = { 0, 0, -5.0f };
-	//XMFLOAT3 lookat = {0, 0, 1};
-	//XMFLOAT3 up = { 0, 1, 0 };
-
-	//FXMVECTOR positionVector = XMLoadFloat3(&position);
-	//FXMVECTOR lookatVector = XMLoadFloat3(&lookat);
-	//FXMVECTOR upVector = XMLoadFloat3(&up);
+	// 由于 directX 是左手坐标系，有些东西和课里面不一样
 	m_view = DirectX::XMMatrixLookAtLH(
-		DirectX::XMVectorSet(0, 0, -5.0f, 0.0f), 
+		DirectX::XMVectorSet(0.0f, 0.0f, -3.0f, 0.0f), 
 		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
 		DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-	//m_view = DirectX::XMMatrixLookAtLH(positionVector, lookatVector, upVector);
-
 	FLOAT fov = 90 * D3DX_PI / 180;
 	FLOAT aspectRatio = 800.0 / 600;
-
-	//m_projection = DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, 0.1, 100.0f);
 	m_projection = DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, 1.0f, 1000.0f);
 	XMMATRIX matrix = m_projection * m_view * m_model;
 
-
-	XMMATRIX pos = DirectX::XMMatrixTranspose(DirectX::XMMatrixSet(
+	XMMATRIX pos = DirectX::XMMatrixSet(
 		-1.0f, -1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f, -1.0f,
-		-1.0f, -1.0f, -1.0f, -1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f));
+		-1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, -1.0f, 1.0f, 1.0f);
 
-	//pos = m_model * pos;
-	//pos = m_view * pos;
-	//pos = m_projection * pos;
 	pos = pos * m_model;
 	pos = pos * m_view;
 	pos = pos * m_projection;
-	pos = DirectX::XMMatrixTranspose(pos);
 	XMFLOAT4X4 pDestination;
 	DirectX::XMStoreFloat4x4(&pDestination, pos);
 	return pDestination;

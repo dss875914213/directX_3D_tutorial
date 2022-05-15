@@ -38,7 +38,7 @@ public:
 	void Message(int msg);
 private:
 	void SetVertexBuffer();
-	DirectX::XMFLOAT4X4 SetVP();
+	DirectX::XMFLOAT4X4 SetMVP();
 private:
 	ID3D11VertexShader* m_pVertexShader;
 	ID3D11PixelShader* m_pPixelShader;

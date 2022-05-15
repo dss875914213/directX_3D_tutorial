@@ -337,7 +337,7 @@ void Graphics::Message(int msg)
 
 void Graphics::SetVertexBuffer()
 {
-	XMFLOAT4X4 pos = SetVP();
+	XMFLOAT4X4 pos = SetMVP();
 
 	SimpleVertex vertices[] =
 	{
@@ -375,25 +375,28 @@ void Graphics::SetVertexBuffer()
 		&offset);		// 偏移量
 }
 
-DirectX::XMFLOAT4X4 Graphics::SetVP()
+DirectX::XMFLOAT4X4 Graphics::SetMVP()
 {
 	//XMMATRIX rotate = DirectX::XMMatrixRotationX(m_transformation.angle * D3DX_PI / 180);
 	//XMMATRIX rotate = DirectX::XMMatrixRotationY(m_transformation.angle * D3DX_PI / 180);
 	XMMATRIX rotate = DirectX::XMMatrixRotationZ(m_transformation.angle * D3DX_PI / 180);
 
-	XMMATRIX scale = DirectX::XMMatrixScaling(m_transformation.scale.x, m_transformation.scale.y, 1.0f);
+	XMMATRIX scale = DirectX::XMMatrixScaling(m_transformation.scale.x * 265.0, m_transformation.scale.y*235, 1.0f);
 	XMMATRIX translate = DirectX::XMMatrixTranslation(m_transformation.pos.x, m_transformation.pos.y, 0.0f);
 	//XMMATRIX shear = DirectX::XMMatrix;
 	m_model = scale * rotate* translate;
 
 	// 由于 directX 是左手坐标系，有些东西和课里面不一样
 	m_view = DirectX::XMMatrixLookAtLH(
-		DirectX::XMVectorSet(0.0f, 0.0f, -3.0f, 0.0f), 
-		DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		DirectX::XMVectorSet(0.0f, 0.0f, -10.0f, 0.0f), 
+		DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
 		DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 	FLOAT fov = 90 * D3DX_PI / 180;
 	FLOAT aspectRatio = 800.0 / 600;
-	m_projection = DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, 1.0f, 1000.0f);
+	odprintf("m_transformation.scale.x %f ", m_transformation.scale.x);
+	//FLOAT aspectRatio = 1.0;
+	//m_projection = DirectX::XMMatrixPerspectiveFovLH(fov, aspectRatio, 1.0f, 100.0f);
+	m_projection = DirectX::XMMatrixOrthographicLH(800.0, 600.0, 1.0f, 1000.0f);
 	XMMATRIX matrix = m_projection * m_view * m_model;
 
 	XMMATRIX pos = DirectX::XMMatrixSet(

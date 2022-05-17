@@ -10,6 +10,8 @@
 #define D3DX_PI    (3.14159265358979323846)
 #endif
 
+void __cdecl odprintf(const char* format, ...);
+
 struct Transformation
 {
 	DirectX::XMFLOAT4	clip;
@@ -49,15 +51,20 @@ private:
 	ID3D11DeviceContext* m_pContext;
 	IDXGISwapChain* m_pSwapChain;
 	ID3D11RenderTargetView* m_pRenderTargetView;
+	ID3D11RenderTargetView* m_pRenderTargetView2;
 
 	std::mutex			m_mutex;
 	float				m_threshold;
 	BOOL				m_transParent;
 	Transformation		m_transformation;
 	ID3D11Texture2D*	m_backBuffer;
+	ID3D11Texture2D*	m_pTexture;
+
 	DirectX::XMMATRIX	m_model;
 	DirectX::XMMATRIX	m_view;
 	DirectX::XMMATRIX	m_projection;
+
+	DirectX::XMFLOAT2	m_screenSize;
 };
 
 

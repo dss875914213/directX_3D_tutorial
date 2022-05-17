@@ -1,4 +1,5 @@
 #include "window.h"
+#include "Graphics.h"
 
 Window::WindowClass::Ptr Window::WindowClass::m_instance = nullptr;
 

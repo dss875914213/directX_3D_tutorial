@@ -1,5 +1,6 @@
 #include <windows.h>
 #include "window.h"
+#include "Graphics.h"
 #define  PI 3.1415926
 
 // 回调函数  处理获取的消息
@@ -15,19 +16,27 @@ int WINAPI WinMain(
 	MSG msg;
 	BOOL ret;
 	window.GetGraphics()->Create();
-	while ((ret = GetMessage(&msg, NULL, NULL, NULL)) != 0)
-	{
-		// 将类似组合键转换成可识别的
-		TranslateMessage(&msg);
-		// 分配消息
-		DispatchMessage(&msg);
 
-		//static float add = 0.0f;
-		//add += 2 * PI / 50;
-		//const float c = sin(add) / 2.0f + 0.5f;
+	while (1)
+	{
+		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+			{
+				return msg.wParam;
+			}
+			// 将类似组合键转换成可识别的
+			TranslateMessage(&msg);
+			// 分配消息
+			DispatchMessage(&msg);
+		}
+		static float add = 0.0f;
+		add += 2 * PI / 50;
+		const float c = sin(add) / 2.0f + 0.5f;
 		window.GetGraphics()->ClearBuffer(1.0f, 1.0f, 1.0f);
 		window.GetGraphics()->DrawPicture();
 		window.GetGraphics()->EndDraw();
+		Sleep(33);
 	}
 
 	return 0;

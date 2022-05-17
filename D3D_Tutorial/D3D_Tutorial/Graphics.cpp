@@ -35,6 +35,8 @@ void __cdecl odprintf(const char* format, ...)
 	OutputDebugString(buf);
 }
 
+
+
 // 输入数据解释
 D3D11_INPUT_ELEMENT_DESC layout[] = { 
 	{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA , 0},
@@ -58,11 +60,18 @@ Graphics::Graphics(HWND hWnd)
 
 Graphics::~Graphics()
 {
-
+	if(m_backBuffer)
+		m_backBuffer->Release();
 }
 
 void Graphics::Initialize(HWND hWnd)
 {
+	RECT rect;
+	::GetClientRect(hWnd, &rect);
+
+	m_screenSize.x = rect.right - rect.left;
+	m_screenSize.y = rect.bottom - rect.top;
+
 	UINT flags = 0;
 #ifndef NDEBUG
 	flags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -119,7 +128,34 @@ void Graphics::Initialize(HWND hWnd)
 	// 4. 创建渲染目标视图
 	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&m_backBuffer));
 	m_pDevice->CreateRenderTargetView(m_backBuffer, 0, &m_pRenderTargetView);
-	//backBuffer->Release();
+
+	D3D11_TEXTURE2D_DESC desc;
+	m_backBuffer->GetDesc(&desc);
+	
+	// 5. 创建纹理
+	desc.Width = m_screenSize.x;
+	desc.Height = m_screenSize.y;
+	desc.MipLevels = desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+
+	/*
+		D3D11_USAGE_DEFAULT						GPU 可以读和写，所以可以作为渲染目标纹理和着色器输入纹理；因为 cpu 不能向其写入数据(初始化的时候可能也可以写入数据)，
+												所以他需要先作为 pipeline 的渲染目标纹理，之后作为下一个 pipeline 的输入纹理
+		D3D11_USAGE_IMMUTABLE					纹理不可变，类似 c++ 中的 const, 只能在初始化的时候赋值
+		D3D11_USAGE_DYNAMIC						CPU 写入，GPU 读取。cpu 通过 map 写入数据
+		D3D11_USAGE_STAGING						只能通过 CopySubresourceRegion 和 CopyResource 将另外一块纹理拷贝到 STAGING 纹理，然后通过 map 读取里面的数据
+	*/
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+	desc.MiscFlags = 0;
+
+	m_pDevice->CreateTexture2D(&desc, NULL, &m_pTexture);
+
+	D3D11_RENDER_TARGET_VIEW_DESC targetViewDesc;
+
+	m_pDevice->CreateRenderTargetView(m_pTexture, 0, &m_pRenderTargetView2);
+
 }
 
 void Graphics::Create()
@@ -205,7 +241,7 @@ void Graphics::Create()
 
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
-	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
+	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView2, NULL);
 
 	ID3D11BlendState* blendState;
 	D3D11_BLEND_DESC blendDesc = {};
@@ -239,7 +275,7 @@ void Graphics::ClearBuffer(float red, float green, float blue)
 {
 	const FLOAT color[4] = { red, green, blue, 1.0f };
 	// 使用指定颜色清空渲染目标视图
-	m_pContext->ClearRenderTargetView(m_pRenderTargetView, color);
+	m_pContext->ClearRenderTargetView(m_pRenderTargetView2, color);
 }
 
 void Graphics::InitEffect()
@@ -274,7 +310,8 @@ void Graphics::DrawPicture()
 	// 开始绘制
 	m_pContext->DrawIndexed(6, 0, 0);
 
-	SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
+	SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
+	//SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
 }
 
 void Graphics::EndDraw()

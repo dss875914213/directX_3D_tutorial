@@ -310,7 +310,8 @@ void Graphics::DrawPicture()
 	// ¿ªÊ¼»æÖÆ
 	m_pContext->DrawIndexed(6, 0, 0);
 
-	SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
+	m_pContext->CopyResource(m_backBuffer, m_pTexture);
+	//SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
 	//SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
 }
 

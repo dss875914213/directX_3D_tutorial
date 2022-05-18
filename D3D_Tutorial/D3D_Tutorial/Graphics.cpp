@@ -130,31 +130,82 @@ void Graphics::Initialize(HWND hWnd)
 	m_pDevice->CreateRenderTargetView(m_backBuffer, 0, &m_pRenderTargetView);
 
 	D3D11_TEXTURE2D_DESC desc;
+	
 	m_backBuffer->GetDesc(&desc);
 	
 	// 5. 创建纹理
+	/*
+		D3D11_USAGE_DEFAULT						GPU 可以读和写，所以可以作为渲染目标纹理和着色器输入纹理；因为 cpu 不能向其写入数据，
+												所以他需要先作为 pipeline 的渲染目标纹理，之后作为下一个 pipeline 的输入纹理
+		D3D11_USAGE_IMMUTABLE					纹理不可变，类似 c++ 中的 const, 只能在初始化的时候赋值
+		D3D11_USAGE_DYNAMIC						CPU 写入，GPU 读取。cpu 通过 map 写入数据
+												使用 D3D11_MAP_WRITE_DISCARD 才能写入数据
+		D3D11_USAGE_STAGING						只能通过 CopySubresourceRegion 和 CopyResource 将另外一块纹理拷贝到 STAGING 纹理，
+												然后通过 map 读取里面的数据; BindFlags 只能设为 0，不然创建不出来纹理
+												使用 D3D11_MAP_WRITE 才能写入数据
+	*/
+	ZeroMemory(&desc, sizeof(D3D11_TEXTURE2D_DESC));
 	desc.Width = m_screenSize.x;
 	desc.Height = m_screenSize.y;
 	desc.MipLevels = desc.ArraySize = 1;
 	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-
-	/*
-		D3D11_USAGE_DEFAULT						GPU 可以读和写，所以可以作为渲染目标纹理和着色器输入纹理；因为 cpu 不能向其写入数据(初始化的时候可能也可以写入数据)，
-												所以他需要先作为 pipeline 的渲染目标纹理，之后作为下一个 pipeline 的输入纹理
-		D3D11_USAGE_IMMUTABLE					纹理不可变，类似 c++ 中的 const, 只能在初始化的时候赋值
-		D3D11_USAGE_DYNAMIC						CPU 写入，GPU 读取。cpu 通过 map 写入数据
-		D3D11_USAGE_STAGING						只能通过 CopySubresourceRegion 和 CopyResource 将另外一块纹理拷贝到 STAGING 纹理，然后通过 map 读取里面的数据
-	*/
-	desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+	desc.BindFlags = D3D11_BIND_RENDER_TARGET;	// D3D11_BIND_RENDER_TARGET, 才能创建 渲染目标视图
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;	// D3D11_CPU_ACCESS_WRITE \ READ 或者 0 都可以创建纹理
 	desc.MiscFlags = 0;
 
-	m_pDevice->CreateTexture2D(&desc, NULL, &m_pTexture);
+	char* datas = new char[m_screenSize.x * m_screenSize.y * 4];
+	memset(datas, 0, m_screenSize.x * m_screenSize.y * 4);
 
-	D3D11_RENDER_TARGET_VIEW_DESC targetViewDesc;
+	for (int i = 0; i < m_screenSize.y/3; i++)
+	{
+		for (int j = 0; j < m_screenSize.x * 4; j += 4)
+		{
+			datas[i * ((INT32)m_screenSize.x * 4) + j] = 255;
+		}
+	}
+	D3D11_SUBRESOURCE_DATA data;
+	ZeroMemory(&data, sizeof(D3D11_SUBRESOURCE_DATA));
+	data.pSysMem = datas;
+	data.SysMemPitch = m_screenSize.x * 4;
+	m_pDevice->CreateTexture2D(&desc, &data, &m_pDefaultTexture);
+	m_pDevice->CreateRenderTargetView(m_pDefaultTexture, 0, &m_pRenderTargetView2);
 
-	m_pDevice->CreateRenderTargetView(m_pTexture, 0, &m_pRenderTargetView2);
+	desc.Usage = D3D11_USAGE_IMMUTABLE;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // D3D11_BIND_RENDER_TARGET 不能创建纹理
+	desc.CPUAccessFlags = 0; // 加上 CPU read 或 write 都不能创建纹理
+	m_pDevice->CreateTexture2D(&desc, &data, &m_pImmutableTexture);
+
+	desc.Usage = D3D11_USAGE_DYNAMIC;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // 加上 D3D11_CPU_ACCESS_READ 不能创建纹理
+	m_pDevice->CreateTexture2D(&desc, &data, &m_pDynamicTexture);
+
+	desc.Usage = D3D11_USAGE_STAGING;
+	desc.BindFlags = 0;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE; // 有 read 才能创建成功
+	m_pDevice->CreateTexture2D(&desc, &data, &m_pStagingTexture);
+	
+
+
+	D3D11_MAPPED_SUBRESOURCE map;
+	// m_pDefaultTexture m_pImmutableTexture map->data 为0 不成功
+	// m_pStagingTexture 用 D3D11_MAP_WRITE 成功
+	// m_pDynamicTexture 用 D3D11_MAP_WRITE_DISCARD 才成功
+	hr = m_pContext->Map(m_pStagingTexture, 0, D3D11_MAP_WRITE, 0, &map);
+
+	m_pContext->Unmap(m_pStagingTexture, 0);
+
+	// m_pStagingTexture 用 D3D11_MAP_READ 成功
+	// m_pDefaultTexture m_pImmutableTexture m_pDynamicTexture 不成功
+	hr = m_pContext->Map(m_pStagingTexture, 0, D3D11_MAP_READ, 0, &map);
+
+	m_pContext->Unmap(m_pStagingTexture, 0);
+
+
+	desc.BindFlags = D3D11_USAGE_STAGING;
 
 }
 
@@ -241,7 +292,7 @@ void Graphics::Create()
 
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
-	m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView2, NULL);
+	//m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView2, NULL);
 
 	ID3D11BlendState* blendState;
 	D3D11_BLEND_DESC blendDesc = {};
@@ -275,7 +326,7 @@ void Graphics::ClearBuffer(float red, float green, float blue)
 {
 	const FLOAT color[4] = { red, green, blue, 1.0f };
 	// 使用指定颜色清空渲染目标视图
-	m_pContext->ClearRenderTargetView(m_pRenderTargetView2, color);
+	//m_pContext->ClearRenderTargetView(m_pRenderTargetView2, color);
 }
 
 void Graphics::InitEffect()
@@ -308,9 +359,14 @@ void Graphics::DrawPicture()
 	m_pContext->Unmap(m_constBuffer, 0);
 		
 	// 开始绘制
-	m_pContext->DrawIndexed(6, 0, 0);
+	//m_pContext->DrawIndexed(6, 0, 0);
+	//m_pContext->Map(m_pTexture, 0, )
 
-	m_pContext->CopyResource(m_backBuffer, m_pTexture);
+	//m_pContext->CopyResource(m_backBuffer, m_pDefaultTexture);
+	//m_pContext->CopyResource(m_backBuffer, m_pImmutableTexture);
+	//m_pContext->CopyResource(m_backBuffer, m_pDynamicTexture);
+	m_pContext->CopyResource(m_backBuffer, m_pStagingTexture);
+
 	//SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
 	//SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
 }

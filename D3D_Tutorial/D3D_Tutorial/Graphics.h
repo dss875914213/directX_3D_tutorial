@@ -59,6 +59,10 @@ private:
 	Transformation		m_transformation;
 	ID3D11Texture2D*	m_backBuffer;
 	ID3D11Texture2D*	m_pTexture;
+	ID3D11Texture2D*	m_pDefaultTexture;
+	ID3D11Texture2D*	m_pImmutableTexture;
+	ID3D11Texture2D*	m_pDynamicTexture;
+	ID3D11Texture2D*	m_pStagingTexture;
 
 	DirectX::XMMATRIX	m_model;
 	DirectX::XMMATRIX	m_view;

@@ -6,6 +6,7 @@
 #include "Graphics.h"
 #include "event.h"
 
+using namespace DXSpace;
 class Window
 {
 private:

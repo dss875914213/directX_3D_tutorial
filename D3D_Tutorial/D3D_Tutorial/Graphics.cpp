@@ -42,6 +42,8 @@ D3D11_INPUT_ELEMENT_DESC layout[] = {
 	{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA , 0},
 	{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0}
 };
+namespace DXSpace
+{
 
 Graphics::Graphics(HWND hWnd)
 	:m_pDevice(nullptr),
@@ -60,8 +62,7 @@ Graphics::Graphics(HWND hWnd)
 
 Graphics::~Graphics()
 {
-	if(m_backBuffer)
-		m_backBuffer->Release();
+
 }
 
 void Graphics::Initialize(HWND hWnd)
@@ -113,24 +114,20 @@ void Graphics::Initialize(HWND hWnd)
 	sd.Flags = 0;
 
 	// 3. 使用 IDXGIFactory 创建 IDXGISwapChain 实例
-	IDXGIDevice* dxgiDevice = nullptr;
-	IDXGIAdapter* dxgiAdapter = nullptr;
-	IDXGIFactory* dxgiFactory = nullptr;
-	hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
-	hr = dxgiDevice->GetParent(__uuidof(IDXGIAdapter), (void**)&dxgiAdapter);
-	hr = dxgiAdapter->GetParent(__uuidof(IDXGIFactory), (void**)&dxgiFactory);
+	ComPtr<IDXGIDevice> dxgiDevice;
+	ComPtr<IDXGIAdapter> dxgiAdapter;
+	ComPtr< IDXGIFactory> dxgiFactory;
+	hr = m_pDevice->QueryInterface(__uuidof(IDXGIDevice), &dxgiDevice);
+	hr = dxgiDevice->GetParent(__uuidof(IDXGIAdapter), &dxgiAdapter);
+	hr = dxgiAdapter->GetParent(__uuidof(IDXGIFactory), &dxgiFactory);
 	if(m_pDevice!= nullptr)
-		dxgiFactory->CreateSwapChain(m_pDevice, &sd, &m_pSwapChain);
-	dxgiDevice->Release();
-	dxgiAdapter->Release();
-	dxgiFactory->Release();
+		dxgiFactory->CreateSwapChain(m_pDevice.Get(), &sd, &m_pSwapChain);
 
 	// 4. 创建渲染目标视图
-	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&m_backBuffer));
-	m_pDevice->CreateRenderTargetView(m_backBuffer, 0, &m_pRenderTargetView);
+	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &m_backBuffer);
+	m_pDevice->CreateRenderTargetView(m_backBuffer.Get(), 0, &m_pRenderTargetView);
 
 	D3D11_TEXTURE2D_DESC desc;
-	
 	m_backBuffer->GetDesc(&desc);
 	
 	// 5. 创建纹理
@@ -171,7 +168,7 @@ void Graphics::Initialize(HWND hWnd)
 	data.pSysMem = datas;
 	data.SysMemPitch = m_screenSize.x * 4;
 	m_pDevice->CreateTexture2D(&desc, &data, &m_pDefaultTexture);
-	m_pDevice->CreateRenderTargetView(m_pDefaultTexture, 0, &m_pRenderTargetView2);
+	m_pDevice->CreateRenderTargetView(m_pDefaultTexture.Get(), 0, &m_pRenderTargetView2);
 
 	desc.Usage = D3D11_USAGE_IMMUTABLE;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // D3D11_BIND_RENDER_TARGET 不能创建纹理
@@ -194,15 +191,15 @@ void Graphics::Initialize(HWND hWnd)
 	// m_pDefaultTexture m_pImmutableTexture map->data 为0 不成功
 	// m_pStagingTexture 用 D3D11_MAP_WRITE 成功
 	// m_pDynamicTexture 用 D3D11_MAP_WRITE_DISCARD 才成功
-	hr = m_pContext->Map(m_pStagingTexture, 0, D3D11_MAP_WRITE, 0, &map);
+	hr = m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_WRITE, 0, &map);
 
-	m_pContext->Unmap(m_pStagingTexture, 0);
+	m_pContext->Unmap(m_pStagingTexture.Get(), 0);
 
 	// m_pStagingTexture 用 D3D11_MAP_READ 成功
 	// m_pDefaultTexture m_pImmutableTexture m_pDynamicTexture 不成功
-	hr = m_pContext->Map(m_pStagingTexture, 0, D3D11_MAP_READ, 0, &map);
+	hr = m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &map);
 
-	m_pContext->Unmap(m_pStagingTexture, 0);
+	m_pContext->Unmap(m_pStagingTexture.Get(), 0);
 
 
 	desc.BindFlags = D3D11_USAGE_STAGING;
@@ -249,35 +246,35 @@ void Graphics::Create()
 	bufferDesc.StructureByteStride = 0;
 
 	m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_constBuffer);
-
-	m_pContext->PSSetConstantBuffers(0, 1, &m_constBuffer);
+	m_pContext->PSSetConstantBuffers(0, 1, m_constBuffer.GetAddressOf());
 
 	// 设置所引缓存
 	m_pContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	// 输入布局
-	m_pContext->IASetInputLayout(m_inputLayout);
+	m_pContext->IASetInputLayout(m_inputLayout.Get());
 
 	// 图元拓扑结构
 	m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	/************************************* 顶点着色器阶段 **************************************/
-	m_pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+	m_pContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 
 	/************************************* 像素着色器阶段 **************************************/
-	m_pContext->PSSetShader(m_pPixelShader, nullptr, 0);
+	m_pContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 
-	ID3D11Resource* inputResource = NULL;
-	ID3D11ShaderResourceView* shaderResourceView = NULL;
+	ComPtr<ID3D11Resource> inputResource;
+	ComPtr < ID3D11ShaderResourceView> shaderResourceView;
 	std::wstring path = L"res\\image\\tiger.png";
-	CreateWICTextureFromFile(m_pDevice,
+	CreateWICTextureFromFile(m_pDevice.Get(),
 		path.c_str(),
 		&inputResource,
 		&shaderResourceView);
 
 	m_pContext->PSSetShaderResources(0, 1, &shaderResourceView);
 
-	ID3D11SamplerState* sampler;
+	ComPtr<ID3D11SamplerState> sampler;
+
 	D3D11_SAMPLER_DESC sampleDesc = {};
 	sampleDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampleDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP; // 平铺整数个
@@ -288,13 +285,13 @@ void Graphics::Create()
 	sampleDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	m_pDevice->CreateSamplerState(&sampleDesc, &sampler);
 
-	m_pContext->PSSetSamplers(0, 1, &sampler);
+	m_pContext->PSSetSamplers(0, 1, sampler.GetAddressOf());
 
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
 	//m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView2, NULL);
 
-	ID3D11BlendState* blendState;
+	ComPtr < ID3D11BlendState> blendState;
 	D3D11_BLEND_DESC blendDesc = {};
 	blendDesc.AlphaToCoverageEnable = FALSE;
 	blendDesc.IndependentBlendEnable = FALSE;
@@ -309,7 +306,7 @@ void Graphics::Create()
 	m_pDevice->CreateBlendState(&blendDesc, &blendState);
 
 	const FLOAT BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	m_pContext->OMSetBlendState(blendState, BlendFactor, 0xffffffff);
+	m_pContext->OMSetBlendState(blendState.Get(), BlendFactor, 0xffffffff);
 
 	// 设置视口
 	D3D11_VIEWPORT viewPort = {};
@@ -332,7 +329,7 @@ void Graphics::ClearBuffer(float red, float green, float blue)
 void Graphics::InitEffect()
 {
 	/************************************* 顶点着色器阶段 **************************************/
-	ID3DBlob* pBlob = NULL;
+	ComPtr<ID3DBlob> pBlob = NULL;
 	D3DReadFileToBlob(L"HLSL/vs.cso", &pBlob);
 	m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pVertexShader);
 
@@ -351,12 +348,12 @@ void Graphics::DrawPicture()
 {
 	SetVertexBuffer();
 	D3D11_MAPPED_SUBRESOURCE ms;
-	m_pContext->Map(m_constBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	m_pContext->Map(m_constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
 	{
 		std::lock_guard<std::mutex> guard(m_mutex);
 		memcpy_s(ms.pData, sizeof(m_threshold), &m_threshold, sizeof(m_threshold));
 	}
-	m_pContext->Unmap(m_constBuffer, 0);
+	m_pContext->Unmap(m_constBuffer.Get(), 0);
 		
 	// 开始绘制
 	//m_pContext->DrawIndexed(6, 0, 0);
@@ -365,7 +362,7 @@ void Graphics::DrawPicture()
 	//m_pContext->CopyResource(m_backBuffer, m_pDefaultTexture);
 	//m_pContext->CopyResource(m_backBuffer, m_pImmutableTexture);
 	//m_pContext->CopyResource(m_backBuffer, m_pDynamicTexture);
-	m_pContext->CopyResource(m_backBuffer, m_pStagingTexture);
+	m_pContext->CopyResource(m_backBuffer.Get(), m_pStagingTexture.Get());
 
 	//SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
 	//SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
@@ -445,7 +442,6 @@ void Graphics::SetVertexBuffer()
 		{XMFLOAT3(pos._41 / pos._44, pos._42 / pos._44, pos._43 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 0.7f, m_transformation.flipV ? 0.0f : 0.7f)},
 	};
 
-
 	D3D11_BUFFER_DESC verticsDesc = {};
 	verticsDesc.ByteWidth = sizeof(vertices) * 5; // 字节数
 	// 将 usage 设为 D3D11_USAGE_IMMUTABLE  D3D11_USAGE_DEFAULT 可行
@@ -509,5 +505,6 @@ DirectX::XMFLOAT4X4 Graphics::SetMVP()
 	XMFLOAT4X4 pDestination;
 	DirectX::XMStoreFloat4x4(&pDestination, pos);
 	return pDestination;
+}
 }
 

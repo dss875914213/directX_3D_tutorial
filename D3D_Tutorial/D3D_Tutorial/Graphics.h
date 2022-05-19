@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <mutex>
 #include <DirectXMath.h>
+#include <wrl/client.h>
 
 #ifndef D3DX_PI
 #define D3DX_PI    (3.14159265358979323846)
@@ -23,52 +24,56 @@ struct Transformation
 	FLOAT				angle;
 };
 
+template<class T>
+using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-
-class Graphics : public Object
+namespace DXSpace
 {
-public:
-	Graphics(HWND hWnd);
-	~Graphics();
-	void Initialize(HWND hWnd); // 初始化 direct3D
-	void Create();
-	void ClearBuffer(float red, float green, float blue);
-	void InitEffect();
-	void DrawPicture();
-	void EndDraw();
+	class Graphics : public Object
+	{
+	public:
+		Graphics(HWND hWnd);
+		~Graphics();
+		void Initialize(HWND hWnd); // 初始化 direct3D
+		void Create();
+		void ClearBuffer(float red, float green, float blue);
+		void InitEffect();
+		void DrawPicture();
+		void EndDraw();
 
-	void Message(int msg);
-private:
-	void SetVertexBuffer();
-	DirectX::XMFLOAT4X4 SetMVP();
-private:
-	ID3D11VertexShader* m_pVertexShader;
-	ID3D11PixelShader* m_pPixelShader;
-	ID3D11InputLayout* m_inputLayout;
-	ID3D11Buffer* m_constBuffer;
+		void Message(int msg);
+	private:
+		void SetVertexBuffer();
+		DirectX::XMFLOAT4X4 SetMVP();
+	private:
+	
 
-	ID3D11Device* m_pDevice;
-	ID3D11DeviceContext* m_pContext;
-	IDXGISwapChain* m_pSwapChain;
-	ID3D11RenderTargetView* m_pRenderTargetView;
-	ID3D11RenderTargetView* m_pRenderTargetView2;
+		ComPtr<ID3D11VertexShader>		m_pVertexShader;
+		ComPtr<ID3D11PixelShader>		m_pPixelShader;
+		ComPtr<ID3D11InputLayout>		m_inputLayout;
+		ComPtr<ID3D11Buffer>			m_constBuffer;
 
-	std::mutex			m_mutex;
-	float				m_threshold;
-	BOOL				m_transParent;
-	Transformation		m_transformation;
-	ID3D11Texture2D*	m_backBuffer;
-	ID3D11Texture2D*	m_pTexture;
-	ID3D11Texture2D*	m_pDefaultTexture;
-	ID3D11Texture2D*	m_pImmutableTexture;
-	ID3D11Texture2D*	m_pDynamicTexture;
-	ID3D11Texture2D*	m_pStagingTexture;
+		ComPtr<ID3D11Device>			m_pDevice;
+		ComPtr<ID3D11DeviceContext>		m_pContext;
+		ComPtr<IDXGISwapChain>			m_pSwapChain;
+		ComPtr<ID3D11RenderTargetView>	m_pRenderTargetView;
+		ComPtr<ID3D11RenderTargetView>	m_pRenderTargetView2;
+		ComPtr<ID3D11Texture2D>			m_backBuffer;
+		ComPtr<ID3D11Texture2D>			m_pTexture;
+		ComPtr<ID3D11Texture2D>			m_pDefaultTexture;
+		ComPtr<ID3D11Texture2D>			m_pImmutableTexture;
+		ComPtr<ID3D11Texture2D>			m_pDynamicTexture;
+		ComPtr<ID3D11Texture2D>			m_pStagingTexture;
 
-	DirectX::XMMATRIX	m_model;
-	DirectX::XMMATRIX	m_view;
-	DirectX::XMMATRIX	m_projection;
-
-	DirectX::XMFLOAT2	m_screenSize;
-};
+		std::mutex			m_mutex;
+		float				m_threshold;
+		BOOL				m_transParent;
+		Transformation		m_transformation;
+		DirectX::XMMATRIX	m_model;
+		DirectX::XMMATRIX	m_view;
+		DirectX::XMMATRIX	m_projection;
+		DirectX::XMFLOAT2	m_screenSize;
+	};
+}
 
 

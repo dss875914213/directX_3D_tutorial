@@ -371,19 +371,38 @@ void Graphics::DrawPicture()
 	m_pContext->Unmap(m_constBuffer.Get(), 0);
 		
 
-	//D3D11_MAPPED_SUBRESOURCE ms;
-	m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	////D3D11_MAPPED_SUBRESOURCE ms;
+	//m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	//UINT8* pdata = (UINT8*)ms.pData;
+	//static int add = 0;
+	//add++;
+	//for (int i = 0; i < m_screenSize.y / 3; i++)
+	//{
+	//	for (int j = 0; j < m_screenSize.x * 4; j += 4)
+	//	{
+	//		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
+	//	}
+	//}
+	//m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
+
+	m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &ms);
 	UINT8* pdata = (UINT8*)ms.pData;
-	static int add = 0;
-	add++;
-	for (int i = 0; i < m_screenSize.y / 3; i++)
-	{
-		for (int j = 0; j < m_screenSize.x * 4; j += 4)
-		{
-			pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
-		}
-	}
-	m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
+	UINT8* saveData = new UINT8[m_screenSize.x * m_screenSize.y * 4];
+
+	memcpy(saveData, pdata, m_screenSize.x * m_screenSize.y * 4);
+
+	//static int add = 0;
+	//add++;
+	//for (int i = 0; i < m_screenSize.y / 3; i++)
+	//{
+	//	for (int j = 0; j < m_screenSize.x * 4; j += 4)
+	//	{
+	//		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
+	//	}
+	//}
+	m_pContext->Unmap(m_pStagingTexture.Get(), 0);
+
+	delete saveData;
 
 	// ¿ªÊ¼»æÖÆ
 	//m_pContext->DrawIndexed(6, 0, 0);

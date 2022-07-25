@@ -178,7 +178,20 @@ void Graphics::Initialize(HWND hWnd)
 	desc.Usage = D3D11_USAGE_DYNAMIC;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // 加上 D3D11_CPU_ACCESS_READ 不能创建纹理
-	m_pDevice->CreateTexture2D(&desc, &data, &m_pDynamicTexture);
+	m_pDevice->CreateTexture2D(&desc, NULL, &m_pDynamicTexture);
+
+	D3D11_MAPPED_SUBRESOURCE ms;
+	m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	UINT8* pdata = (UINT8*)ms.pData;
+	for (int i = 0; i < m_screenSize.y / 3; i++)
+	{
+		for (int j = 0; j < m_screenSize.x * 4; j += 4)
+		{
+			pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127;
+		}
+	}
+	m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
+	
 
 	desc.Usage = D3D11_USAGE_STAGING;
 	desc.BindFlags = 0;
@@ -346,6 +359,8 @@ void Graphics::InitEffect()
 
 void Graphics::DrawPicture()
 {
+
+
 	SetVertexBuffer();
 	D3D11_MAPPED_SUBRESOURCE ms;
 	m_pContext->Map(m_constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
@@ -355,6 +370,21 @@ void Graphics::DrawPicture()
 	}
 	m_pContext->Unmap(m_constBuffer.Get(), 0);
 		
+
+	//D3D11_MAPPED_SUBRESOURCE ms;
+	m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	UINT8* pdata = (UINT8*)ms.pData;
+	static int add = 0;
+	add++;
+	for (int i = 0; i < m_screenSize.y / 3; i++)
+	{
+		for (int j = 0; j < m_screenSize.x * 4; j += 4)
+		{
+			pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
+		}
+	}
+	m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
+
 	// 开始绘制
 	//m_pContext->DrawIndexed(6, 0, 0);
 	//m_pContext->Map(m_pTexture, 0, )
@@ -362,7 +392,7 @@ void Graphics::DrawPicture()
 	//m_pContext->CopyResource(m_backBuffer, m_pDefaultTexture);
 	//m_pContext->CopyResource(m_backBuffer, m_pImmutableTexture);
 	//m_pContext->CopyResource(m_backBuffer, m_pDynamicTexture);
-	m_pContext->CopyResource(m_backBuffer.Get(), m_pStagingTexture.Get());
+	m_pContext->CopyResource(m_backBuffer.Get(), m_pDynamicTexture.Get());
 
 	//SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
 	//SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");

@@ -12,7 +12,7 @@ void Render()
 	while (1)
 	{
 		m_g->DrawPicture();
-		Sleep(16);
+		Sleep(10);
 	}
 }
 

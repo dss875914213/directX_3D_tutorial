@@ -64,6 +64,9 @@ namespace DXSpace
 		ComPtr<ID3D11Texture2D>			m_pImmutableTexture;
 		ComPtr<ID3D11Texture2D>			m_pDynamicTexture;
 		ComPtr<ID3D11Texture2D>			m_pStagingTexture;
+		ComPtr<ID3D11Texture2D>			m_pStagingTexture2;
+		ComPtr<ID3D11Texture2D>			m_pStagingTexture3;
+		ComPtr<ID3D11Texture2D>			m_pStagingTexture4;
 
 		std::mutex			m_mutex;
 		float				m_threshold;

@@ -13,14 +13,7 @@ Window::WindowClass::~WindowClass()
 
 Window::WindowClass::Ptr Window::WindowClass::GetInstance()
 {
-	if (m_instance == nullptr)
-	{
-		std::lock_guard<std::mutex> autolock(m_mutex);
-		if (m_instance == nullptr)
-		{
-			m_instance = std::shared_ptr<WindowClass>(new WindowClass);
-		}
-	}
+	m_instance = std::shared_ptr<WindowClass>(new WindowClass);
 	return m_instance;
 }
 
@@ -57,8 +50,8 @@ Window::WindowClass::WindowClass()
 Window::Window()
 	:m_g(nullptr)
 {
-	INT width = 800;
-	INT height = 600;
+	INT width = 1920;
+	INT height = 1080;
 	RECT wr;
 	wr.left = 100;
 	wr.right = width + wr.left;
@@ -70,7 +63,7 @@ Window::Window()
 		TEXT("First Window"),												// 窗口名称
 		WS_OVERLAPPEDWINDOW,												// 窗口类型
 		200, 200,															// 窗口起始位置
-		wr.right - wr.left, wr.bottom - wr.top,								// 窗口宽高
+		1920, 1080,								// 窗口宽高
 		NULL,																// 父窗口句柄
 		NULL,																// 菜单句柄
 		WindowClass::GetInstance()->GetHInstance(),							// 要与该窗口关联的模块实例的句柄

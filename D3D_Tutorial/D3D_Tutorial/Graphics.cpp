@@ -129,7 +129,7 @@ static int add = 0;
 void Graphics::DrawPicture()
 {
 	add++;
-	if (add >= 4)
+	if (add >= 2)
 		add = 0;
 	long lBeginTime = MyGetTickCount();
 	D3D11_MAPPED_SUBRESOURCE ms;
@@ -138,7 +138,7 @@ void Graphics::DrawPicture()
 	{
 		m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &ms);
 		m_pContext->Unmap(m_pStagingTexture.Get(), 0);
-		m_pContext->CopyResource(m_pStagingTexture4.Get(), m_pDefaultTexture.Get());
+		m_pContext->CopyResource(m_pStagingTexture2.Get(), m_pDefaultTexture.Get());
 		m_pContext->Flush();
 	}
 	else if(add == 1)
@@ -148,20 +148,20 @@ void Graphics::DrawPicture()
 		m_pContext->CopyResource(m_pStagingTexture.Get(), m_pDefaultTexture.Get());
 		m_pContext->Flush();
 	}
-	else if (add == 2)
-	{
-		m_pContext->Map(m_pStagingTexture3.Get(), 0, D3D11_MAP_READ, 0, &ms);
-		m_pContext->Unmap(m_pStagingTexture3.Get(), 0);
-		m_pContext->CopyResource(m_pStagingTexture2.Get(), m_pDefaultTexture.Get());
-		m_pContext->Flush();
-	}
-	else if (add == 3)
-	{
-		m_pContext->Map(m_pStagingTexture4.Get(), 0, D3D11_MAP_READ, 0, &ms);
-		m_pContext->Unmap(m_pStagingTexture4.Get(), 0);
-		m_pContext->CopyResource(m_pStagingTexture3.Get(), m_pDefaultTexture.Get());
-		m_pContext->Flush();
-	}
+	//else if (add == 2)
+	//{
+	//	m_pContext->Map(m_pStagingTexture3.Get(), 0, D3D11_MAP_READ, 0, &ms);
+	//	m_pContext->Unmap(m_pStagingTexture3.Get(), 0);
+	//	m_pContext->CopyResource(m_pStagingTexture2.Get(), m_pDefaultTexture.Get());
+	//	m_pContext->Flush();
+	//}
+	//else if (add == 3)
+	//{
+	//	m_pContext->Map(m_pStagingTexture4.Get(), 0, D3D11_MAP_READ, 0, &ms);
+	//	m_pContext->Unmap(m_pStagingTexture4.Get(), 0);
+	//	m_pContext->CopyResource(m_pStagingTexture3.Get(), m_pDefaultTexture.Get());
+	//	m_pContext->Flush();
+	//}
 
 
 	

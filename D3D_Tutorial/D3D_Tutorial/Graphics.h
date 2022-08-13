@@ -43,6 +43,8 @@ namespace DXSpace
 
 		void Message(int msg);
 	private:
+		void SetShaderResources();
+
 		void SetVertexBuffer();
 		DirectX::XMFLOAT4X4 SetMVP();
 	private:

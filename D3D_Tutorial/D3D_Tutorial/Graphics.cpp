@@ -126,9 +126,6 @@ void Graphics::Initialize(HWND hWnd)
 	// 4. 创建渲染目标视图
 	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)m_backBuffer.GetAddressOf());
 	m_pDevice->CreateRenderTargetView(m_backBuffer.Get(), 0, m_pRenderTargetView.GetAddressOf());
-
-	D3D11_TEXTURE2D_DESC desc;
-	m_backBuffer->GetDesc(&desc);
 }
 
 void Graphics::Create()
@@ -196,7 +193,9 @@ void Graphics::Create()
 		&inputResource,
 		&shaderResourceView);
 
-	m_pContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
+	SetShaderResources();
+
+	//m_pContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
 
 	ComPtr<ID3D11SamplerState> sampler;
 
@@ -242,6 +241,8 @@ void Graphics::Create()
 	viewPort.MinDepth = 0.0f;
 	viewPort.MaxDepth = 1.0f;
 	m_pContext->RSSetViewports(1, &viewPort);
+
+	
 }
 
 void Graphics::ClearBuffer(float red, float green, float blue)
@@ -279,50 +280,7 @@ void Graphics::DrawPicture()
 		memcpy_s(ms.pData, sizeof(m_threshold), &m_threshold, sizeof(m_threshold));
 	}
 	m_pContext->Unmap(m_constBuffer.Get(), 0);
-	// 开始绘制
-	m_pContext->DrawIndexed(6, 0, 0);
-
-	//////D3D11_MAPPED_SUBRESOURCE ms;
-	////m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
-	////UINT8* pdata = (UINT8*)ms.pData;
-	////static int add = 0;
-	////add++;
-	////for (int i = 0; i < m_screenSize.y / 3; i++)
-	////{
-	////	for (int j = 0; j < m_screenSize.x * 4; j += 4)
-	////	{
-	////		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
-	////	}
-	////}
-	////m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
-
-	//m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &ms);
-	//UINT8* pdata = (UINT8*)ms.pData;
-	//UINT8* saveData = new UINT8[m_screenSize.x * m_screenSize.y * 4];
-
-	//memcpy(saveData, pdata, m_screenSize.x * m_screenSize.y * 4);
-
-	////static int add = 0;
-	////add++;
-	////for (int i = 0; i < m_screenSize.y / 3; i++)
-	////{
-	////	for (int j = 0; j < m_screenSize.x * 4; j += 4)
-	////	{
-	////		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
-	////	}
-	////}
-	//m_pContext->Unmap(m_pStagingTexture.Get(), 0);
-
-	//delete saveData;
-
-
-	////m_pContext->CopyResource(m_backBuffer, m_pDefaultTexture);
-	////m_pContext->CopyResource(m_backBuffer, m_pImmutableTexture);
-	////m_pContext->CopyResource(m_backBuffer, m_pDynamicTexture);
-	//m_pContext->CopyResource(m_backBuffer.Get(), m_pDynamicTexture.Get());
-
-	////SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
-	////SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
+	m_pContext->DrawIndexed(6, 0, 0); // 开始绘制
 }
 
 void Graphics::EndDraw()
@@ -385,7 +343,46 @@ void Graphics::Message(int msg)
 	odprintf("m_threshold %f ", m_threshold);
 }
 
+void Graphics::SetShaderResources()
+{
+	// 创建 R8 纹理，先设置默认值，可以显示
+	// 读取文件内容，
+	D3D11_TEXTURE2D_DESC desc;
+	ZeroMemory(&desc, sizeof(desc));
+	desc.Width = 256;
+	desc.Height = 256;
+	desc.MipLevels = desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8_UNORM;
+	//DXGI_FORMAT_R8_UNORM
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_DYNAMIC;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	desc.MiscFlags = 0;
 
+	char* datas = new char[256 * 256];
+	memset(datas, 0, 256 * 128);
+	memset(datas+ 256 * 128, 255, 256 * 128);
+
+	//for (int i = 0; i < 256 / 3; i++)
+	//{
+	//	for (int j = 0; j < 256; j ++)
+	//	{
+	//		datas[i * 256 + j] = 255;
+	//	}
+	//}
+	D3D11_SUBRESOURCE_DATA data;
+	ZeroMemory(&data, sizeof(D3D11_SUBRESOURCE_DATA));
+	data.pSysMem = datas;
+	data.SysMemPitch = 256;
+
+	ComPtr<ID3D11Texture2D> texture;
+	m_pDevice->CreateTexture2D(&desc, &data, texture.GetAddressOf());
+	ComPtr < ID3D11ShaderResourceView> targetView;
+	m_pDevice->CreateShaderResourceView(texture.Get(), NULL, targetView.GetAddressOf());
+	m_pContext->PSSetShaderResources(0, 1, targetView.GetAddressOf());
+}
 
 void Graphics::SetVertexBuffer()
 {

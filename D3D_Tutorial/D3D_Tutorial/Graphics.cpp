@@ -124,99 +124,11 @@ void Graphics::Initialize(HWND hWnd)
 		dxgiFactory->CreateSwapChain(m_pDevice.Get(), &sd, &m_pSwapChain);
 
 	// 4. 创建渲染目标视图
-	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &m_backBuffer);
-	m_pDevice->CreateRenderTargetView(m_backBuffer.Get(), 0, &m_pRenderTargetView);
+	m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)m_backBuffer.GetAddressOf());
+	m_pDevice->CreateRenderTargetView(m_backBuffer.Get(), 0, m_pRenderTargetView.GetAddressOf());
 
 	D3D11_TEXTURE2D_DESC desc;
 	m_backBuffer->GetDesc(&desc);
-	
-	// 5. 创建纹理
-	/*
-		D3D11_USAGE_DEFAULT						GPU 可以读和写，所以可以作为渲染目标纹理和着色器输入纹理；因为 cpu 不能向其写入数据，
-												所以他需要先作为 pipeline 的渲染目标纹理，之后作为下一个 pipeline 的输入纹理
-		D3D11_USAGE_IMMUTABLE					纹理不可变，类似 c++ 中的 const, 只能在初始化的时候赋值
-		D3D11_USAGE_DYNAMIC						CPU 写入，GPU 读取。cpu 通过 map 写入数据
-												使用 D3D11_MAP_WRITE_DISCARD 才能写入数据
-		D3D11_USAGE_STAGING						只能通过 CopySubresourceRegion 和 CopyResource 将另外一块纹理拷贝到 STAGING 纹理，
-												然后通过 map 读取里面的数据; BindFlags 只能设为 0，不然创建不出来纹理
-												使用 D3D11_MAP_WRITE 才能写入数据
-	*/
-	ZeroMemory(&desc, sizeof(D3D11_TEXTURE2D_DESC));
-	desc.Width = m_screenSize.x;
-	desc.Height = m_screenSize.y;
-	desc.MipLevels = desc.ArraySize = 1;
-	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.BindFlags = D3D11_BIND_RENDER_TARGET;	// D3D11_BIND_RENDER_TARGET, 才能创建 渲染目标视图
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;	// D3D11_CPU_ACCESS_WRITE \ READ 或者 0 都可以创建纹理
-	desc.MiscFlags = 0;
-
-	char* datas = new char[m_screenSize.x * m_screenSize.y * 4];
-	memset(datas, 0, m_screenSize.x * m_screenSize.y * 4);
-
-	for (int i = 0; i < m_screenSize.y/3; i++)
-	{
-		for (int j = 0; j < m_screenSize.x * 4; j += 4)
-		{
-			datas[i * ((INT32)m_screenSize.x * 4) + j] = 255;
-		}
-	}
-	D3D11_SUBRESOURCE_DATA data;
-	ZeroMemory(&data, sizeof(D3D11_SUBRESOURCE_DATA));
-	data.pSysMem = datas;
-	data.SysMemPitch = m_screenSize.x * 4;
-	m_pDevice->CreateTexture2D(&desc, &data, &m_pDefaultTexture);
-	m_pDevice->CreateRenderTargetView(m_pDefaultTexture.Get(), 0, &m_pRenderTargetView2);
-
-	desc.Usage = D3D11_USAGE_IMMUTABLE;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // D3D11_BIND_RENDER_TARGET 不能创建纹理
-	desc.CPUAccessFlags = 0; // 加上 CPU read 或 write 都不能创建纹理
-	m_pDevice->CreateTexture2D(&desc, &data, &m_pImmutableTexture);
-
-	desc.Usage = D3D11_USAGE_DYNAMIC;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // 加上 D3D11_CPU_ACCESS_READ 不能创建纹理
-	m_pDevice->CreateTexture2D(&desc, NULL, &m_pDynamicTexture);
-
-	D3D11_MAPPED_SUBRESOURCE ms;
-	m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
-	UINT8* pdata = (UINT8*)ms.pData;
-	for (int i = 0; i < m_screenSize.y / 3; i++)
-	{
-		for (int j = 0; j < m_screenSize.x * 4; j += 4)
-		{
-			pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127;
-		}
-	}
-	m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
-	
-
-	desc.Usage = D3D11_USAGE_STAGING;
-	desc.BindFlags = 0;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE; // 有 read 才能创建成功
-	m_pDevice->CreateTexture2D(&desc, &data, &m_pStagingTexture);
-	
-
-
-	D3D11_MAPPED_SUBRESOURCE map;
-	// m_pDefaultTexture m_pImmutableTexture map->data 为0 不成功
-	// m_pStagingTexture 用 D3D11_MAP_WRITE 成功
-	// m_pDynamicTexture 用 D3D11_MAP_WRITE_DISCARD 才成功
-	hr = m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_WRITE, 0, &map);
-
-	m_pContext->Unmap(m_pStagingTexture.Get(), 0);
-
-	// m_pStagingTexture 用 D3D11_MAP_READ 成功
-	// m_pDefaultTexture m_pImmutableTexture m_pDynamicTexture 不成功
-	hr = m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &map);
-
-	m_pContext->Unmap(m_pStagingTexture.Get(), 0);
-
-
-	desc.BindFlags = D3D11_USAGE_STAGING;
-
 }
 
 void Graphics::Create()
@@ -284,7 +196,7 @@ void Graphics::Create()
 		&inputResource,
 		&shaderResourceView);
 
-	m_pContext->PSSetShaderResources(0, 1, &shaderResourceView);
+	m_pContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
 
 	ComPtr<ID3D11SamplerState> sampler;
 
@@ -296,13 +208,13 @@ void Graphics::Create()
 	sampleDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampleDesc.MinLOD = 0;
 	sampleDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	m_pDevice->CreateSamplerState(&sampleDesc, &sampler);
+	m_pDevice->CreateSamplerState(&sampleDesc, sampler.GetAddressOf());
 
 	m_pContext->PSSetSamplers(0, 1, sampler.GetAddressOf());
 
 	/************************************* 输出阶段 **************************************/
 	// 设置渲染目标
-	//m_pContext->OMSetRenderTargets(1, &m_pRenderTargetView2, NULL);
+	m_pContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL);
 
 	ComPtr < ID3D11BlendState> blendState;
 	D3D11_BLEND_DESC blendDesc = {};
@@ -316,7 +228,7 @@ void Graphics::Create()
 	blendDesc.RenderTarget->DestBlendAlpha = D3D11_BLEND_ONE;
 	blendDesc.RenderTarget->BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendDesc.RenderTarget->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL; // 可以写入的位置
-	m_pDevice->CreateBlendState(&blendDesc, &blendState);
+	m_pDevice->CreateBlendState(&blendDesc, blendState.GetAddressOf());
 
 	const FLOAT BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	m_pContext->OMSetBlendState(blendState.Get(), BlendFactor, 0xffffffff);
@@ -336,7 +248,7 @@ void Graphics::ClearBuffer(float red, float green, float blue)
 {
 	const FLOAT color[4] = { red, green, blue, 1.0f };
 	// 使用指定颜色清空渲染目标视图
-	//m_pContext->ClearRenderTargetView(m_pRenderTargetView2, color);
+	m_pContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 }
 
 void Graphics::InitEffect()
@@ -344,7 +256,7 @@ void Graphics::InitEffect()
 	/************************************* 顶点着色器阶段 **************************************/
 	ComPtr<ID3DBlob> pBlob = NULL;
 	D3DReadFileToBlob(L"HLSL/vs.cso", &pBlob);
-	m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pVertexShader);
+	m_pDevice->CreateVertexShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, m_pVertexShader.GetAddressOf());
 
 	m_pDevice->CreateInputLayout(layout,
 		2,
@@ -354,13 +266,11 @@ void Graphics::InitEffect()
 
 	/************************************* 像素着色器阶段 **************************************/
 	D3DReadFileToBlob(L"HLSL/ps.cso", &pBlob);
-	m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, &m_pPixelShader);
+	m_pDevice->CreatePixelShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, m_pPixelShader.GetAddressOf());
 }
 
 void Graphics::DrawPicture()
 {
-
-
 	SetVertexBuffer();
 	D3D11_MAPPED_SUBRESOURCE ms;
 	m_pContext->Map(m_constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
@@ -369,52 +279,50 @@ void Graphics::DrawPicture()
 		memcpy_s(ms.pData, sizeof(m_threshold), &m_threshold, sizeof(m_threshold));
 	}
 	m_pContext->Unmap(m_constBuffer.Get(), 0);
-		
-
-	////D3D11_MAPPED_SUBRESOURCE ms;
-	//m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
-	//UINT8* pdata = (UINT8*)ms.pData;
-	//static int add = 0;
-	//add++;
-	//for (int i = 0; i < m_screenSize.y / 3; i++)
-	//{
-	//	for (int j = 0; j < m_screenSize.x * 4; j += 4)
-	//	{
-	//		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
-	//	}
-	//}
-	//m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
-
-	m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &ms);
-	UINT8* pdata = (UINT8*)ms.pData;
-	UINT8* saveData = new UINT8[m_screenSize.x * m_screenSize.y * 4];
-
-	memcpy(saveData, pdata, m_screenSize.x * m_screenSize.y * 4);
-
-	//static int add = 0;
-	//add++;
-	//for (int i = 0; i < m_screenSize.y / 3; i++)
-	//{
-	//	for (int j = 0; j < m_screenSize.x * 4; j += 4)
-	//	{
-	//		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
-	//	}
-	//}
-	m_pContext->Unmap(m_pStagingTexture.Get(), 0);
-
-	delete saveData;
-
 	// 开始绘制
-	//m_pContext->DrawIndexed(6, 0, 0);
-	//m_pContext->Map(m_pTexture, 0, )
+	m_pContext->DrawIndexed(6, 0, 0);
 
-	//m_pContext->CopyResource(m_backBuffer, m_pDefaultTexture);
-	//m_pContext->CopyResource(m_backBuffer, m_pImmutableTexture);
-	//m_pContext->CopyResource(m_backBuffer, m_pDynamicTexture);
-	m_pContext->CopyResource(m_backBuffer.Get(), m_pDynamicTexture.Get());
+	//////D3D11_MAPPED_SUBRESOURCE ms;
+	////m_pContext->Map(m_pDynamicTexture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+	////UINT8* pdata = (UINT8*)ms.pData;
+	////static int add = 0;
+	////add++;
+	////for (int i = 0; i < m_screenSize.y / 3; i++)
+	////{
+	////	for (int j = 0; j < m_screenSize.x * 4; j += 4)
+	////	{
+	////		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
+	////	}
+	////}
+	////m_pContext->Unmap(m_pDynamicTexture.Get(), 0);
 
-	//SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
-	//SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
+	//m_pContext->Map(m_pStagingTexture.Get(), 0, D3D11_MAP_READ, 0, &ms);
+	//UINT8* pdata = (UINT8*)ms.pData;
+	//UINT8* saveData = new UINT8[m_screenSize.x * m_screenSize.y * 4];
+
+	//memcpy(saveData, pdata, m_screenSize.x * m_screenSize.y * 4);
+
+	////static int add = 0;
+	////add++;
+	////for (int i = 0; i < m_screenSize.y / 3; i++)
+	////{
+	////	for (int j = 0; j < m_screenSize.x * 4; j += 4)
+	////	{
+	////		pdata[i * ((INT32)m_screenSize.x * 4) + j] = 127 + add;
+	////	}
+	////}
+	//m_pContext->Unmap(m_pStagingTexture.Get(), 0);
+
+	//delete saveData;
+
+
+	////m_pContext->CopyResource(m_backBuffer, m_pDefaultTexture);
+	////m_pContext->CopyResource(m_backBuffer, m_pImmutableTexture);
+	////m_pContext->CopyResource(m_backBuffer, m_pDynamicTexture);
+	//m_pContext->CopyResource(m_backBuffer.Get(), m_pDynamicTexture.Get());
+
+	////SaveWICTextureToFile(m_pContext, m_pTexture, GUID_ContainerFormatPng, L"D://test.png");
+	////SaveWICTextureToFile(m_pContext, m_backBuffer, GUID_ContainerFormatPng, L"D://test.png");
 }
 
 void Graphics::EndDraw()

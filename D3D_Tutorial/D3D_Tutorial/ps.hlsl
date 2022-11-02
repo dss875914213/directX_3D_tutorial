@@ -18,5 +18,7 @@ float4 MyPs(VSOut pIn) : SV_Target
 	float4 sampleColor = tex.Sample(samplerLinear, pIn.tex);
 	//return float4(0.0, 0.0, 0.0, 1.0);
 	//return float4(1.0, 1.0, 1.0, 1.0);
-	return float4(sampleColor.x, 1.0,1.0, 1.0);
+	//return float4(sampleColor.x, 1.0,1.0, 1.0);
+	float dis = distance(float3(sampleColor.xyz), float3(0.0, 1.0, 0.0));
+	return float4(sampleColor.xyz, 1.0);
 }

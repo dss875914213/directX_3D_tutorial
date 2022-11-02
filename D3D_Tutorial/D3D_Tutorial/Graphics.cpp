@@ -193,9 +193,9 @@ void Graphics::Create()
 		&inputResource,
 		&shaderResourceView);
 
-	SetShaderResources();
+	//SetShaderResources();
 
-	//m_pContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
+	m_pContext->PSSetShaderResources(0, 1, shaderResourceView.GetAddressOf());
 
 	ComPtr<ID3D11SamplerState> sampler;
 
@@ -390,10 +390,10 @@ void Graphics::SetVertexBuffer()
 
 	SimpleVertex vertices[] =
 	{
-		{XMFLOAT3(pos._11 / pos._14, pos._12 / pos._14, pos._13 / pos._14), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.3f, m_transformation.flipV ? 0.0f : 0.7f)},
-		{XMFLOAT3(pos._21 / pos._24, pos._22 / pos._24, pos._23 / pos._24),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.3f, m_transformation.flipV ? 1.0f : 0.3f)},
-		{XMFLOAT3(pos._31 / pos._34, pos._32 / pos._34, pos._33 / pos._34),	XMFLOAT2(m_transformation.flipH ? 0.0 : 0.7f, m_transformation.flipV ? 1.0f : 0.3f)},
-		{XMFLOAT3(pos._41 / pos._44, pos._42 / pos._44, pos._43 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 0.7f, m_transformation.flipV ? 0.0f : 0.7f)},
+		{XMFLOAT3(pos._11 / pos._14, pos._12 / pos._14, pos._13 / pos._14), XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 0.0f : 1.0f)},
+		{XMFLOAT3(pos._21 / pos._24, pos._22 / pos._24, pos._23 / pos._24),	XMFLOAT2(m_transformation.flipH ? 1.0 : 0.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{XMFLOAT3(pos._31 / pos._34, pos._32 / pos._34, pos._33 / pos._34),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 1.0f : 0.0f)},
+		{XMFLOAT3(pos._41 / pos._44, pos._42 / pos._44, pos._43 / pos._44),	XMFLOAT2(m_transformation.flipH ? 0.0 : 1.0f, m_transformation.flipV ? 0.0f : 1.0f)},
 	};
 
 	D3D11_BUFFER_DESC verticsDesc = {};
